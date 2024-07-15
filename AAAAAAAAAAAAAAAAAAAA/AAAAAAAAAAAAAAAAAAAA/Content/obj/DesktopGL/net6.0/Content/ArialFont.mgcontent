@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PipelineBuildEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <SourceFile>C:/Users/ralar/Documents/GitHub/testing-new-render-method/AAAAAAAAAAAAAAAAAAAA/AAAAAAAAAAAAAAAAAAAA/Content/ArialFont.spritefont</SourceFile>
+  <SourceTime>2022-07-26T05:44:10-06:00</SourceTime>
+  <DestFile>C:/Users/ralar/Documents/GitHub/testing-new-render-method/AAAAAAAAAAAAAAAAAAAA/AAAAAAAAAAAAAAAAAAAA/Content/bin/DesktopGL/Content/ArialFont.xnb</DestFile>
+  <DestTime>2024-07-15T01:27:07.0132489-06:00</DestTime>
+  <Importer>FontDescriptionImporter</Importer>
+  <ImporterTime>2022-07-26T05:44:56-06:00</ImporterTime>
+  <Processor>FontDescriptionProcessor</Processor>
+  <ProcessorTime>2022-07-26T05:44:56-06:00</ProcessorTime>
+  <Parameters>
+    <Key>PremultiplyAlpha</Key>
+    <Value>True</Value>
+  </Parameters>
+  <Parameters>
+    <Key>TextureFormat</Key>
+    <Value>Compressed</Value>
+  </Parameters>
+  <Dependencies />
+  <BuildAsset />
+  <BuildOutput />
+</PipelineBuildEvent>

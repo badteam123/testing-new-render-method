@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "IkxWNUsYfFwReVBn8zEZwd4MGrtlXbNRYcMrmMFcSh+h4nvhKFk+yIIzhdZtLRlTxFhicFiljWlMMHLn5AujLA==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\ralar\\Documents\\GitHub\\testing-new-render-method\\AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ralar\\.nuget\\packages\\monogame.content.builder.task\\3.8.1.303\\monogame.content.builder.task.3.8.1.303.nupkg.sha512",
+    "C:\\Users\\ralar\\.nuget\\packages\\monogame.framework.desktopgl\\3.8.1.303\\monogame.framework.desktopgl.3.8.1.303.nupkg.sha512"
+  ],
+  "logs": []
+}
