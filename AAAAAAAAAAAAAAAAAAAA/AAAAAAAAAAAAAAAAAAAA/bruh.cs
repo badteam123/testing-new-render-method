@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Text;
@@ -28,16 +29,41 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         private Random rand = new Random();
 
         FastNoiseLite noise = new FastNoiseLite();
-        private float noiseScale = 3.3f; //0.3f
+        private float noiseScale = 2.3f; //0.3f
         private float vertScale = 5f;
-        private float threshold = 0.3f;
+        private float threshold = -0.6f;
 
         public World() {
             noise.SetSeed(rand.Next());
             chunk = new Dictionary<int, Dictionary<int, Dictionary<int, List<Block>>>>();
-            chunkSize = 2;
-            player = new Player(new Vector3(0, 0, 0), 10f);
+            chunkSize = 4;
+            player = new Player(new Vector3(0, 0, 0), 60f);
+        }
 
+
+
+        private void floorCheck(int x, int y, int z) {
+            if (doesChunkExist(x, y, z)) {
+                for (int b = 0; b < chunk[x][y][z].Count; b++) {
+                    chunk[x][y][z][b].collideFloor(player);
+                }
+            }
+        }
+
+        private void wallCheck(int x, int y, int z) {
+            if (doesChunkExist(x, y, z)) {
+                for (int b = 0; b < chunk[x][y][z].Count; b++) {
+                    chunk[x][y][z][b].collide(player);
+                }
+            }
+        }
+
+        private void stepCheck(int x, int y, int z) {
+            if (doesChunkExist(x, y, z)) {
+                for (int b = 0; b < chunk[x][y][z].Count; b++) {
+                    chunk[x][y][z][b].step(player);
+                }
+            }
         }
 
         /// <summary>
@@ -74,7 +100,6 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                 var kstate = Keyboard.GetState();
 
                 // Move player
-                /*
                 if (kstate.IsKeyDown(Keys.W)) {
                     player.xVel += (float)Math.Sin(player.r) * -player.movementSpeed * deltaTime;
                     player.zVel += (float)Math.Cos(player.r) * -player.movementSpeed * deltaTime;
@@ -94,8 +119,8 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                 if (kstate.IsKeyDown(Keys.Space) && player.onGround) {
                     player.yVel = player.jumpHeight;
                 }
-                */
 
+                /*
                 if (kstate.IsKeyDown(Keys.W)) {
                     player.x += (float)Math.Sin(player.r) * -player.movementSpeed * deltaTime;
                     player.z += (float)Math.Cos(player.r) * -player.movementSpeed * deltaTime;
@@ -118,57 +143,62 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                 if (kstate.IsKeyDown(Keys.LeftShift)) {
                     player.y -= player.movementSpeed * deltaTime;
                 }
+                */
             }
 
             player.yVel -= player.gravity * deltaTime;
 
             player.onGround = false;
 
-            /*
+            int[] temp = this.gc(player.x, player.y, player.z);
 
-            foreach (string key in blocks.Keys) {
-                floorCheck(key, Math.Round(player.x / chunkSize) - 1, Math.Round(player.z / chunkSize) - 1);
-                floorCheck(key, Math.Round(player.x / chunkSize) - 1, Math.Round(player.z / chunkSize));
-                floorCheck(key, Math.Round(player.x / chunkSize) - 1, Math.Round(player.z / chunkSize) + 1);
-                floorCheck(key, Math.Round(player.x / chunkSize), Math.Round(player.z / chunkSize) - 1);
-                floorCheck(key, Math.Round(player.x / chunkSize), Math.Round(player.z / chunkSize));
-                floorCheck(key, Math.Round(player.x / chunkSize), Math.Round(player.z / chunkSize) + 1);
-                floorCheck(key, Math.Round(player.x / chunkSize) + 1, Math.Round(player.z / chunkSize) - 1);
-                floorCheck(key, Math.Round(player.x / chunkSize) + 1, Math.Round(player.z / chunkSize));
-                floorCheck(key, Math.Round(player.x / chunkSize) + 1, Math.Round(player.z / chunkSize) + 1);
+            int[] chunks = {
+                temp[0] - 1, temp[1] - 1, temp[2] - 1,
+                temp[0] - 1, temp[1] - 1, temp[2],
+                temp[0] - 1, temp[1] - 1, temp[2] + 1,
+                temp[0] - 1, temp[1], temp[2] - 1,
+                temp[0] - 1, temp[1], temp[2],
+                temp[0] - 1, temp[1], temp[2] + 1,
+                temp[0] - 1, temp[1] + 1, temp[2] - 1,
+                temp[0] - 1, temp[1] + 1, temp[2],
+                temp[0] - 1, temp[1] + 1, temp[2] + 1,
+                temp[0], temp[1] - 1, temp[2] - 1,
+                temp[0], temp[1] - 1, temp[2],
+                temp[0], temp[1] - 1, temp[2] + 1,
+                temp[0], temp[1], temp[2] - 1,
+                temp[0], temp[1], temp[2],
+                temp[0], temp[1], temp[2] + 1,
+                temp[0], temp[1] + 1, temp[2] - 1,
+                temp[0], temp[1] + 1, temp[2],
+                temp[0], temp[1] + 1, temp[2] + 1,
+                temp[0] + 1, temp[1] - 1, temp[2] - 1,
+                temp[0] + 1, temp[1] - 1, temp[2],
+                temp[0] + 1, temp[1] - 1, temp[2] + 1,
+                temp[0] + 1, temp[1], temp[2] - 1,
+                temp[0] + 1, temp[1], temp[2],
+                temp[0] + 1, temp[1], temp[2] + 1,
+                temp[0] + 1, temp[1] + 1, temp[2] - 1,
+                temp[0] + 1, temp[1] + 1, temp[2],
+                temp[0] + 1, temp[1] + 1, temp[2] + 1
+            };
+
+            for (int c = 0; c < chunks.Length-2; c+=3){
+                floorCheck(chunks[c], chunks[c+1], chunks[c+2]);
             }
             player.prevVelocity = player.velocity;
             player.nextVelocity = player.velocity;
             player.debugCanStepX = true;
             player.debugCanStepZ = true;
-            foreach (string key in blocks.Keys) {
-
-                wallCheck(key, Math.Round(player.x / chunkSize) - 1, Math.Round(player.z / chunkSize) - 1);
-                wallCheck(key, Math.Round(player.x / chunkSize) - 1, Math.Round(player.z / chunkSize));
-                wallCheck(key, Math.Round(player.x / chunkSize) - 1, Math.Round(player.z / chunkSize) + 1);
-                wallCheck(key, Math.Round(player.x / chunkSize), Math.Round(player.z / chunkSize) - 1);
-                wallCheck(key, Math.Round(player.x / chunkSize), Math.Round(player.z / chunkSize));
-                wallCheck(key, Math.Round(player.x / chunkSize), Math.Round(player.z / chunkSize) + 1);
-                wallCheck(key, Math.Round(player.x / chunkSize) + 1, Math.Round(player.z / chunkSize) - 1);
-                wallCheck(key, Math.Round(player.x / chunkSize) + 1, Math.Round(player.z / chunkSize));
-                wallCheck(key, Math.Round(player.x / chunkSize) + 1, Math.Round(player.z / chunkSize) + 1);
+            for (int c = 0; c < chunks.Length-2; c+=3){
+                wallCheck(chunks[c], chunks[c+1], chunks[c+2]);
             }
-            foreach (string key in blocks.Keys) {
-                stepCheck(key, Math.Round(player.x / chunkSize) - 1, Math.Round(player.z / chunkSize) - 1);
-                stepCheck(key, Math.Round(player.x / chunkSize) - 1, Math.Round(player.z / chunkSize));
-                stepCheck(key, Math.Round(player.x / chunkSize) - 1, Math.Round(player.z / chunkSize) + 1);
-                stepCheck(key, Math.Round(player.x / chunkSize), Math.Round(player.z / chunkSize) - 1);
-                stepCheck(key, Math.Round(player.x / chunkSize), Math.Round(player.z / chunkSize));
-                stepCheck(key, Math.Round(player.x / chunkSize), Math.Round(player.z / chunkSize) + 1);
-                stepCheck(key, Math.Round(player.x / chunkSize) + 1, Math.Round(player.z / chunkSize) - 1);
-                stepCheck(key, Math.Round(player.x / chunkSize) + 1, Math.Round(player.z / chunkSize));
-                stepCheck(key, Math.Round(player.x / chunkSize) + 1, Math.Round(player.z / chunkSize) + 1);
+            for (int c = 0; c < chunks.Length-2; c+=3){
+                stepCheck(chunks[c], chunks[c+1], chunks[c+2]);
             }
 
             player.velocity = player.nextVelocity;
 
             player.position += player.velocity * deltaTime;
-            */
 
             player.cameraPosition = player.position + new Microsoft.Xna.Framework.Vector3(0, player.halfHeight / 2f, 0);
 
@@ -193,7 +223,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                 }
             }
 
-            if(!alreadyExists) {
+            if (!alreadyExists) {
                 if (!chunk.ContainsKey(x)) {
                     chunk[x] = new Dictionary<int, Dictionary<int, List<Block>>>();
                 }
@@ -206,26 +236,56 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                     chunk[x][y][z] = new List<Block>();
                 }
 
-                for(int cX = x * chunkSize; cX < (x * chunkSize) + chunkSize; cX++) {
+                for (int cX = x * chunkSize; cX < (x * chunkSize) + chunkSize; cX++) {
                     for (int cY = y * chunkSize; cY < (y * chunkSize) + chunkSize; cY++) {
                         for (int cZ = z * chunkSize; cZ < (z * chunkSize) + chunkSize; cZ++) {
 
-                            if (cY == (int)Math.Round(noise.GetNoise(cX * noiseScale, cZ * noiseScale)*vertScale)) {
-                                this.addBlock(cX, cY, cZ, 0);
-                            } else if (cY < (int)Math.Round(noise.GetNoise(cX * noiseScale, cZ * noiseScale)*vertScale)){
-                                this.addBlock(cX, cY, cZ, 1);
+                            float boise = (int)Math.Round(noise.GetNoise(cX * noiseScale, cZ * noiseScale) * vertScale);
+                            float coise = (int)Math.Round(noise.GetNoise(cX * noiseScale, cY * noiseScale, cZ * noiseScale));
+
+                            if (cY <= boise && coise > threshold) {
+                                if (cY == boise) {
+                                    this.addBlock(cX, cY, cZ, 0);
+                                } else if (cY < boise && cY > boise - 5) {
+                                    this.addBlock(cX, cY, cZ, 1);
+                                } else if (cY <= boise - 5) {
+                                    this.addBlock(cX, cY, cZ, rand.Next(5));
+                                }
                             }
 
                         }
                     }
                 }
-
+                //regenerateChunk(x, y, z);
             }
-            regenerateChunk(x, y, z);
         }
 
-            // Generalize gc function to handle both (x, y, z) and single num
-            public int[] gc(int ix, int iy, int iz) {
+        public bool doesChunkExist(int x, int y, int z) {
+            if (chunk.ContainsKey(x)) {
+                if (chunk[x].ContainsKey(y)) {
+                    if (chunk[x][y].ContainsKey(z)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public int[] gc(int ix, int iy, int iz) {
+
+            float x = ix + 0.5f;
+            float y = iy + 0.5f;
+            float z = iz + 0.5f;
+
+            int[] returnData = new int[3];
+            returnData[0] = (int)Math.Floor(x / this.chunkSize);
+            returnData[1] = (int)Math.Floor(y / this.chunkSize);
+            returnData[2] = (int)Math.Floor(z / this.chunkSize);
+
+            return returnData;
+        }
+
+        public int[] gc(float ix, float iy, float iz) {
 
             float x = ix + 0.5f;
             float y = iy + 0.5f;
@@ -240,7 +300,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         }
 
         public void addBlock(int x, int y, int z, int tex) {
-            
+
             int[] currentChunk = this.gc(x, y, z);
 
             if (!chunk.ContainsKey(currentChunk[0])) {
@@ -265,7 +325,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                 if (chunk[currentChunk[0]].ContainsKey(currentChunk[1])) {
                     if (chunk[currentChunk[0]][currentChunk[1]].ContainsKey(currentChunk[2])) {
                         bool exists = false;
-                        for(int i = 0; i < chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]].Count; i++) {
+                        for (int i = 0; i < chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]].Count; i++) {
                             if (chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]][i].x == x && chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]][i].y == y && chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]][i].z == z) {
                                 exists = true;
                                 break;
@@ -299,184 +359,182 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             //vertices = VertexPositionTexture[];
             //indices = int[];
 
+            if (!primitiveCount.ContainsKey(x)) {
+                primitiveCount[x] = new Dictionary<int, Dictionary<int, int>>();
+            }
+            if (!primitiveCount[x].ContainsKey(y)) {
+                primitiveCount[x][y] = new Dictionary<int, int>();
+            }
 
-                        if (!primitiveCount.ContainsKey(x)) {
-                            primitiveCount[x] = new Dictionary<int, Dictionary<int, int>>();
-                        }
-                        if (!primitiveCount[x].ContainsKey(y)) {
-                            primitiveCount[x][y] = new Dictionary<int, int>();
-                        }
+            primitiveCount[x][y][z] = 0;
 
-                        primitiveCount[x][y][z] = 0;
+            List<Vector3> positions = new List<Vector3>();
+            List<Vector2> UVs = new List<Vector2>();
+            List<int> listIndices = new List<int>();
+            int totalIndices = 0;
 
-                        List<Vector3> positions = new List<Vector3>();
-                        List<Vector2> UVs = new List<Vector2>();
-                        List<int> listIndices = new List<int>();
+            for (int b = 0; b < chunk[x][y][z].Count; b++) {
 
-                        for (int b = 0; b < chunk[x][y][z].Count; b++) {
+                int cX = chunk[x][y][z][b].x;
+                int cY = chunk[x][y][z][b].y;
+                int cZ = chunk[x][y][z][b].z;
+                float cLX = chunk[x][y][z][b].lx;
+                float cHX = chunk[x][y][z][b].hx;
+                float cLY = chunk[x][y][z][b].ly;
+                float cHY = chunk[x][y][z][b].hy;
 
-                            int cX = chunk[x][y][z][b].x;
-                            int cY = chunk[x][y][z][b].y;
-                            int cZ = chunk[x][y][z][b].z;
-                            float cLX = chunk[x][y][z][b].lx;
-                            float cHX = chunk[x][y][z][b].hx;
-                            float cLY = chunk[x][y][z][b].ly;
-                            float cHY = chunk[x][y][z][b].hy;
+                // Back (z-)
+                if (!checkForBlock(cX, cY, cZ - 1)) {
+                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
+                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
+                    UVs.Add(new Vector2(cLX, cLY));
+                    UVs.Add(new Vector2(cLX, cHY));
+                    UVs.Add(new Vector2(cHX, cHY));
+                    UVs.Add(new Vector2(cHX, cLY));
 
-                            int totalIndices = 0;
-
-                            // Back (z-)
-                            if (!checkForBlockChunk(x, y, z, cX, cY, cZ - 1)) {
-                                positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
-                                positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
-                                UVs.Add(new Vector2(cLX, cLY));
-                                UVs.Add(new Vector2(cLX, cHY));
-                                UVs.Add(new Vector2(cHX, cHY));
-                                UVs.Add(new Vector2(cHX, cLY));
-
-                                int[] addedIndices = new int[]{
+                    int[] addedIndices = new int[]{
                                     0 + totalIndices, 2 + totalIndices, 1 + totalIndices, 0 + totalIndices, 3 + totalIndices, 2 + totalIndices
                                 };
 
-                                listIndices.AddRange(addedIndices);
+                    listIndices.AddRange(addedIndices);
 
-                                totalIndices += 4;
-                                primitiveCount[x][y][z] += 2;
-                            }
+                    totalIndices += 4;
+                    primitiveCount[x][y][z] += 2;
+                }
 
-                            // Front (z+)
-                            if (!checkForBlockChunk(x, y, z, cX, cY, cZ + 1)) {
-                                positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
-                                positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
-                                UVs.Add(new Vector2(cLX, cLY));
-                                UVs.Add(new Vector2(cLX, cHY));
-                                UVs.Add(new Vector2(cHX, cHY));
-                                UVs.Add(new Vector2(cHX, cLY));
+                // Front (z+)
+                if (!checkForBlock(cX, cY, cZ + 1)) {
+                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
+                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
+                    UVs.Add(new Vector2(cLX, cLY));
+                    UVs.Add(new Vector2(cLX, cHY));
+                    UVs.Add(new Vector2(cHX, cHY));
+                    UVs.Add(new Vector2(cHX, cLY));
 
-                                int[] addedIndices = new int[]{
+                    int[] addedIndices = new int[]{
                                     0 + totalIndices, 1 + totalIndices, 2 + totalIndices, 0 + totalIndices, 2 + totalIndices, 3 + totalIndices
                                 };
 
-                                listIndices.AddRange(addedIndices);
+                    listIndices.AddRange(addedIndices);
 
-                                totalIndices += 4;
-                                primitiveCount[x][y][z] += 2;
-                            }
+                    totalIndices += 4;
+                    primitiveCount[x][y][z] += 2;
+                }
 
-                            // Left (x-)
-                            if (!checkForBlockChunk(x, y, z, cX - 1, cY, cZ)) {
-                                positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
-                                positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
-                                positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
-                                positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
-                                UVs.Add(new Vector2(cHX, cHY));
-                                UVs.Add(new Vector2(cLX, cHY));
-                                UVs.Add(new Vector2(cLX, cLY));
-                                UVs.Add(new Vector2(cHX, cLY));
+                // Left (x-)
+                if (!checkForBlock(cX - 1, cY, cZ)) {
+                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
+                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
+                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
+                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
+                    UVs.Add(new Vector2(cHX, cHY));
+                    UVs.Add(new Vector2(cLX, cHY));
+                    UVs.Add(new Vector2(cLX, cLY));
+                    UVs.Add(new Vector2(cHX, cLY));
 
-                                int[] addedIndices = new int[]{
+                    int[] addedIndices = new int[]{
                                     2 + totalIndices, 3 + totalIndices, 0 + totalIndices, 2 + totalIndices, 0 + totalIndices, 1 + totalIndices
                                 };
 
-                                listIndices.AddRange(addedIndices);
+                    listIndices.AddRange(addedIndices);
 
-                                totalIndices += 4;
-                                primitiveCount[x][y][z] += 2;
-                            }
+                    totalIndices += 4;
+                    primitiveCount[x][y][z] += 2;
+                }
 
-                            // Right (x+)
-                            if (!checkForBlockChunk(x, y, z, cX + 1, cY, cZ)) {
-                                positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
-                                UVs.Add(new Vector2(cHX, cHY));
-                                UVs.Add(new Vector2(cLX, cHY));
-                                UVs.Add(new Vector2(cLX, cLY));
-                                UVs.Add(new Vector2(cHX, cLY));
+                // Right (x+)
+                if (!checkForBlock(cX + 1, cY, cZ)) {
+                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
+                    UVs.Add(new Vector2(cHX, cHY));
+                    UVs.Add(new Vector2(cLX, cHY));
+                    UVs.Add(new Vector2(cLX, cLY));
+                    UVs.Add(new Vector2(cHX, cLY));
 
-                                int[] addedIndices = new int[]{
+                    int[] addedIndices = new int[]{
                                     0 + totalIndices, 1 + totalIndices, 2 + totalIndices, 0 + totalIndices, 2 + totalIndices, 3 + totalIndices
                                 };
 
-                                listIndices.AddRange(addedIndices);
+                    listIndices.AddRange(addedIndices);
 
-                                totalIndices += 4;
-                                primitiveCount[x][y][z] += 2;
-                            }
+                    totalIndices += 4;
+                    primitiveCount[x][y][z] += 2;
+                }
 
-                            // Bottom (y-)
-                            if (!checkForBlockChunk(x, y, z, cX, cY - 1, cZ)) {
-                                positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
-                                positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
-                                UVs.Add(new Vector2(cLX, cLY));
-                                UVs.Add(new Vector2(cLX, cHY));
-                                UVs.Add(new Vector2(cHX, cHY));
-                                UVs.Add(new Vector2(cHX, cLY));
+                // Bottom (y-)
+                if (!checkForBlock(cX, cY - 1, cZ)) {
+                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
+                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
+                    UVs.Add(new Vector2(cLX, cLY));
+                    UVs.Add(new Vector2(cLX, cHY));
+                    UVs.Add(new Vector2(cHX, cHY));
+                    UVs.Add(new Vector2(cHX, cLY));
 
-                                int[] addedIndices = new int[]{
+                    int[] addedIndices = new int[]{
                                     1 + totalIndices, 2 + totalIndices, 3 + totalIndices, 1 + totalIndices, 3 + totalIndices, 0 + totalIndices
                                 };
 
-                                listIndices.AddRange(addedIndices);
+                    listIndices.AddRange(addedIndices);
 
-                                totalIndices += 4;
-                                primitiveCount[x][y][z] += 2;
-                            }
+                    totalIndices += 4;
+                    primitiveCount[x][y][z] += 2;
+                }
 
-                            // Top (y+)
-                            if (!checkForBlockChunk(x, y, z, cX, cY + 1, cZ)) {
-                                positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
-                                positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
-                                positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
-                                UVs.Add(new Vector2(cLX, cHY));
-                                UVs.Add(new Vector2(cLX, cLY));
-                                UVs.Add(new Vector2(cHX, cLY));
-                                UVs.Add(new Vector2(cHX, cHY));
+                // Top (y+)
+                if (!checkForBlock(cX, cY + 1, cZ)) {
+                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
+                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
+                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
+                    UVs.Add(new Vector2(cLX, cHY));
+                    UVs.Add(new Vector2(cLX, cLY));
+                    UVs.Add(new Vector2(cHX, cLY));
+                    UVs.Add(new Vector2(cHX, cHY));
 
-                                int[] addedIndices = new int[]{
-                                    0 + totalIndices, 2 + totalIndices, 3 + totalIndices, 0 + totalIndices, 1 + totalIndices, 2 + totalIndices
-                                };
+                    int[] addedIndices = new int[]{
+                        0 + totalIndices, 2 + totalIndices, 3 + totalIndices, 0 + totalIndices, 1 + totalIndices, 2 + totalIndices
+                    };
 
-                                listIndices.AddRange(addedIndices);
+                    listIndices.AddRange(addedIndices);
 
-                                totalIndices += 4;
-                                primitiveCount[x][y][z] += 2;
-                            }
+                    totalIndices += 4;
+                    primitiveCount[x][y][z] += 2;
+                }
 
-                        }
+            }
 
-                        if (!vertices.ContainsKey(x)) {
-                            vertices[x] = new Dictionary<int, Dictionary<int, VertexPositionTexture[]>>();
-                        }
-                        if (!vertices[x].ContainsKey(y)) {
-                            vertices[x][y] = new Dictionary<int, VertexPositionTexture[]>();
-                        }
+            if (!vertices.ContainsKey(x)) {
+                vertices[x] = new Dictionary<int, Dictionary<int, VertexPositionTexture[]>>();
+            }
+            if (!vertices[x].ContainsKey(y)) {
+                vertices[x][y] = new Dictionary<int, VertexPositionTexture[]>();
+            }
 
-                        if (!indices.ContainsKey(x)) {
-                            indices[x] = new Dictionary<int, Dictionary<int, int[]>>();
-                        }
-                        if (!indices[x].ContainsKey(y)) {
-                            indices[x][y] = new Dictionary<int, int[]>();
-                        }
+            if (!indices.ContainsKey(x)) {
+                indices[x] = new Dictionary<int, Dictionary<int, int[]>>();
+            }
+            if (!indices[x].ContainsKey(y)) {
+                indices[x][y] = new Dictionary<int, int[]>();
+            }
 
-                        vertices[x][y][z] = new VertexPositionTexture[positions.Count];
-                        indices[x][y][z] = new int[listIndices.Count];
+            vertices[x][y][z] = new VertexPositionTexture[positions.Count];
+            indices[x][y][z] = new int[listIndices.Count];
 
-                        for (int i = 0; i < positions.Count; i++) {
-                            vertices[x][y][z][i] = new VertexPositionTexture(new Vector3(positions[i].X, positions[i].Y, positions[i].Z), new Vector2(UVs[i].X, UVs[i].Y));
-                        }
+            for (int i = 0; i < positions.Count; i++) {
+                vertices[x][y][z][i] = new VertexPositionTexture(new Vector3(positions[i].X, positions[i].Y, positions[i].Z), new Vector2(UVs[i].X, UVs[i].Y));
+            }
 
-                        for (int i = 0; i < listIndices.Count; i++) {
-                            indices[x][y][z][i] = listIndices[i];
-                        }
+            for (int i = 0; i < listIndices.Count; i++) {
+                indices[x][y][z][i] = listIndices[i];
+            }
 
         }
 
@@ -486,6 +544,10 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             //indices = int[];
 
             foreach (int x in chunk.Keys) {
+                Console.Clear();
+                Console.CursorLeft = 0;
+                Console.CursorTop = 0;
+                Console.Write(x);
                 foreach (int y in chunk[x].Keys) {
                     foreach (int z in chunk[x][y].Keys) {
 
@@ -501,6 +563,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                         List<Vector3> positions = new List<Vector3>();
                         List<Vector2> UVs = new List<Vector2>();
                         List<int> listIndices = new List<int>();
+                        int totalIndices = 0;
 
                         for (int b = 0; b < chunk[x][y][z].Count; b++) {
 
@@ -512,10 +575,8 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             float cLY = chunk[x][y][z][b].ly;
                             float cHY = chunk[x][y][z][b].hy;
 
-                            int totalIndices = 0;
-
                             // Back (z-)
-                            if (!checkForBlockChunk(x, y, z, cX, cY, cZ - 1)) {
+                            if (!checkForBlock(cX, cY, cZ - 1)) {
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
@@ -536,7 +597,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Front (z+)
-                            if (!checkForBlockChunk(x, y, z, cX, cY, cZ + 1)) {
+                            if (!checkForBlock(cX, cY, cZ + 1)) {
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
@@ -557,7 +618,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Left (x-)
-                            if (!checkForBlockChunk(x, y, z, cX - 1, cY, cZ)) {
+                            if (!checkForBlock(cX - 1, cY, cZ)) {
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
@@ -578,7 +639,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Right (x+)
-                            if (!checkForBlockChunk(x, y, z, cX + 1, cY, cZ)) {
+                            if (!checkForBlock(cX + 1, cY, cZ)) {
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
@@ -599,7 +660,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Bottom (y-)
-                            if (!checkForBlockChunk(x, y, z, cX, cY - 1, cZ)) {
+                            if (!checkForBlock(cX, cY - 1, cZ)) {
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
@@ -620,7 +681,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Top (y+)
-                            if (!checkForBlockChunk(x, y, z, cX, cY + 1, cZ)) {
+                            if (!checkForBlock(cX, cY + 1, cZ)) {
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
@@ -702,9 +763,8 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             ResourceManager.GraphicsDevice.SamplerStates[0] = new SamplerState { Filter = TextureFilter.Point, AddressU = TextureAddressMode.Wrap, AddressV = TextureAddressMode.Wrap };
             foreach (var pass in effect.CurrentTechnique.Passes) {
                 pass.Apply();
-                Console.WriteLine(tmp.Count);
-                for(int i = 0; i < tmp.Count; i++) {
-                    ResourceManager.GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length, indices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, (indices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length)/3);
+                for (int i = 0; i < tmp.Count; i++) {
+                    ResourceManager.GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length, indices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, (indices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length) / 3);
                 }
             }
 
@@ -735,15 +795,23 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             switch (tex) {
                 case 0:
                     this.lx = 0.0f;
-                    this.ly = 0.9f;
+                    this.ly = 0.0f;
                     break;
                 case 1:
                     this.lx = 0.1f;
-                    this.ly = 0.9f;
+                    this.ly = 0.0f;
                     break;
                 case 2:
                     this.lx = 0.2f;
-                    this.ly = 0.9f;
+                    this.ly = 0.0f;
+                    break;
+                case 3:
+                    this.lx = 0.3f;
+                    this.ly = 0.0f;
+                    break;
+                case 4:
+                    this.lx = 0.4f;
+                    this.ly = 0.0f;
                     break;
             }
 
@@ -752,11 +820,6 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
             this.lx += 0.033333333f;
             this.ly += 0.033333333f;
-
-            this.lx = 0;
-            this.ly = 0;
-            this.hx = 1;
-            this.hy = 1;
 
         }
 

@@ -38,7 +38,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         private float vertScale = 15f;
         private float threshold = 0.3f;
 
-        private int renderDistance = 10; // 16 - 18 fps on 500 render dist before greedy meshing
+        private int renderDistance = 8; // 16 - 18 fps on 500 render dist before greedy meshing
 
         public Game1() {
             graphics = new GraphicsDeviceManager(this);
@@ -118,7 +118,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             spriteBatch = new SpriteBatch(GraphicsDevice);
             font = Content.Load<SpriteFont>("ArialFont");
 
-            world.texture = Content.Load<Texture2D>("grass");
+            world.texture = Content.Load<Texture2D>("texsheet");
             world.texture.GraphicsDevice.SamplerStates[0] = new SamplerState { Filter = TextureFilter.Point, AddressU = TextureAddressMode.Wrap, AddressV = TextureAddressMode.Wrap };
 
             world.effect = new BasicEffect(GraphicsDevice) {
@@ -127,7 +127,12 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                 Projection = Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f)
             };
 
-            //world.regenerate();
+            world.effect.FogEnabled = true;
+            world.effect.FogColor = Color.Black.ToVector3();
+            world.effect.FogStart = 0;
+            world.effect.FogEnd = 30;
+
+            world.regenerate();
 
         }
 
@@ -141,8 +146,8 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
             world.updatePlayer(deltaTime);
 
-            if (Keyboard.GetState().IsKeyDown(Keys.Space))
-                world.player.yVel += 0.50f;
+            //if (Keyboard.GetState().IsKeyDown(Keys.Space))
+            //    world.player.yVel += 0.50f;
 
             if (Keyboard.GetState().IsKeyDown(Keys.E))
                 world.player.r = 0;
