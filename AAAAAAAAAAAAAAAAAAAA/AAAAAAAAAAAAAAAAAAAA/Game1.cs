@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using static System.Reflection.Metadata.BlobBuilder;
 
@@ -38,7 +39,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         private float vertScale = 15f;
         private float threshold = 0.3f;
 
-        private int renderDistance = 8; // 16 - 18 fps on 500 render dist before greedy meshing
+        private int renderDistance = 4; // 16 - 18 fps on 500 render dist before greedy meshing
 
         public Game1() {
             graphics = new GraphicsDeviceManager(this);
@@ -71,8 +72,6 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
             //player.mouseLock = true;
             IsMouseVisible = true;
-
-
 
             string[] bruh = new string[3];
             bruh[0] = "dark_gray";
@@ -117,6 +116,9 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         protected override void LoadContent() {
             spriteBatch = new SpriteBatch(GraphicsDevice);
             font = Content.Load<SpriteFont>("ArialFont");
+            world.lighting = Content.Load<Effect>("Lighting");
+
+            world.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f);
 
             world.texture = Content.Load<Texture2D>("texsheet");
             world.texture.GraphicsDevice.SamplerStates[0] = new SamplerState { Filter = TextureFilter.Point, AddressU = TextureAddressMode.Wrap, AddressV = TextureAddressMode.Wrap };
@@ -127,10 +129,22 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                 Projection = Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f)
             };
 
+            //world.lighting.Parameters[$"Texture"].SetValue(world.texture);
+
+            for (int i = 0; i < 4; i++) {
+                //world.lighting.Parameters[$"PointLights[{i}].Position"].SetValue(new Microsoft.Xna.Framework.Vector3(0, 0, 0));
+                //world.lighting.Parameters[$"PointLights[{i}].Color"].SetValue(new Microsoft.Xna.Framework.Vector3(0, 0, 0));
+                //world.lighting.Parameters[$"PointLights[{i}].Attenuation"].SetValue(new Microsoft.Xna.Framework.Vector3(1, 0.1f, 0.01f));
+            }
+
+            //world.addLight(new Microsoft.Xna.Framework.Vector3(0, 0, 0), new Microsoft.Xna.Framework.Vector3(0, 1, 0));
+
+            /*
             world.effect.FogEnabled = true;
             world.effect.FogColor = Color.Black.ToVector3();
             world.effect.FogStart = 0;
             world.effect.FogEnd = 30;
+            */
 
             world.regenerate();
 
@@ -157,6 +171,23 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
         protected override void Draw(GameTime gameTime) {
             GraphicsDevice.Clear(Color.Black);
+
+            Matrix rotationMatrix = Matrix.CreateFromYawPitchRoll(world.player.r, world.player.t, 0);
+            Microsoft.Xna.Framework.Vector3 lookDirection = Microsoft.Xna.Framework.Vector3.Transform(Microsoft.Xna.Framework.Vector3.Forward, rotationMatrix);
+            Microsoft.Xna.Framework.Vector3 upDirection = Microsoft.Xna.Framework.Vector3.Transform(Microsoft.Xna.Framework.Vector3.Up, rotationMatrix);
+            Matrix viewMatrix = Matrix.CreateLookAt(world.player.cameraPosition, world.player.cameraPosition + lookDirection, upDirection);
+
+
+            world.lighting.Parameters["WorldViewProjection"].SetValue(Matrix.CreateTranslation(0, 0, 0) * viewMatrix * world.projectionMatrix);
+
+            world.lighting.Parameters["World"].SetValue(Matrix.CreateTranslation(0, 0, 0));
+            world.lighting.Parameters["playerPos"].SetValue(world.player.position);
+
+            //world.lighting.Parameters["AmbientColor"].SetValue(new Microsoft.Xna.Framework.Vector4(1f, 1f, 1f, 1f));
+            //world.lighting.Parameters["AmbientIntensity"].SetValue(1f);
+
+            //world.lighting.Parameters["View"].SetValue(viewMatrix);
+            //world.lighting.Parameters["Projection"].SetValue(Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f));
 
             world.render();
 

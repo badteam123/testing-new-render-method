@@ -1,5 +1,9 @@
+C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\Content\ArialFont.xnb
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\Content\dark_gray.xnb
+C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\Content\grass.xnb
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\Content\gray.xnb
+C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\Content\Lighting.xnb
+C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\Content\texsheet.xnb
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.exe
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.deps.json
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.runtimeconfig.json
@@ -19,12 +23,10 @@ C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\A
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.AssemblyInfoInputs.cache
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.AssemblyInfo.cs
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.csproj.CoreCompileInputs.cache
-C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.csproj.CopyComplete
+C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.sourcelink.json
+C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAA.06EB5059.Up2Date
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.dll
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\refint\AAAAAAAAAAAAAAAAAAAA.dll
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.pdb
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.genruntimeconfig.cache
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\ref\AAAAAAAAAAAAAAAAAAAA.dll
-C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\Content\ArialFont.xnb
-C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\Content\grass.xnb
-C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\bin\Debug\net6.0\Content\texsheet.xnb

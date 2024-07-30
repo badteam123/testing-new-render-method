@@ -7,13 +7,23 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Reflection.Metadata.BlobBuilder;
 
 namespace AAAAAAAAAAAAAAAAAAAA {
+
+    struct PointLight {
+        public Vector3 Position;
+        public Vector3 Color;
+        public Vector3 Attenuation;
+    };
+
     internal class World {
 
         public Dictionary<int, Dictionary<int, Dictionary<int, List<Block>>>> chunk = new Dictionary<int, Dictionary<int, Dictionary<int, List<Block>>>>();
@@ -22,9 +32,15 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
         public Dictionary<int, Dictionary<int, Dictionary<int, int>>> primitiveCount = new Dictionary<int, Dictionary<int, Dictionary<int, int>>>();
         public int chunkSize { get; set; }
+        public Matrix projectionMatrix { get; set; }
         public Texture2D texture { get; set; }
         public BasicEffect effect { get; set; }
+        public Effect lighting { get; set; }
         public Player player { get; set; }
+
+        public int numLights { get; set; }
+
+        public PointLight[] pointLights { get; set; }
 
         private Random rand = new Random();
 
@@ -34,13 +50,60 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         private float threshold = -0.6f;
 
         public World() {
+            numLights = 0;
+            pointLights = new PointLight[4];
             noise.SetSeed(rand.Next());
             chunk = new Dictionary<int, Dictionary<int, Dictionary<int, List<Block>>>>();
             chunkSize = 4;
             player = new Player(new Vector3(0, 0, 0), 60f);
+
+            /*
+            for(int l = 0; l < pointLights.Length; l++) {
+                pointLights[l] = new PointLight {
+                    Position = new Vector3(0, 0, 0),
+                    Color = new Vector3(0, 0, 0),
+                    Attenuation = new Vector3(1, 0.1f, 0.01f)
+                };
+                lighting.Parameters[$"PointLights[{l}].Position"].SetValue(pointLights[l].Position);
+                lighting.Parameters[$"PointLights[{l}].Color"].SetValue(pointLights[l].Color);
+                lighting.Parameters[$"PointLights[{l}].Attenuation"].SetValue(pointLights[l].Attenuation);
+            }
+            */
         }
 
+        public void light(int index, Vector3 position, Vector3 color) {
+            pointLights[index] = new PointLight {
+                Position = position,
+                Color = color,
+                Attenuation = new Vector3(1, 0.1f, 0.01f)
+            };
+            lighting.Parameters[$"PointLights[{index}].Position"].SetValue(pointLights[index].Position);
+            lighting.Parameters[$"PointLights[{index}].Color"].SetValue(pointLights[index].Color);
+            lighting.Parameters[$"PointLights[{index}].Attenuation"].SetValue(pointLights[index].Attenuation);
+        }
 
+        public void addLight(Vector3 position, Vector3 color) {
+            pointLights[numLights] = new PointLight {
+                Position = position,
+                Color = color,
+                Attenuation = new Vector3(1, 0.1f, 0.01f)
+            };
+            lighting.Parameters[$"PointLights[{numLights}].Position"].SetValue(pointLights[numLights].Position);
+            lighting.Parameters[$"PointLights[{numLights}].Color"].SetValue(pointLights[numLights].Color);
+            lighting.Parameters[$"PointLights[{numLights}].Attenuation"].SetValue(pointLights[numLights].Attenuation);
+            numLights++;
+            lighting.Parameters["NumLights"].SetValue(numLights);
+        }
+
+        public void removeLight() {
+            for (int i = 0; i < numLights; i++) {
+                lighting.Parameters[$"PointLights[{i}].Position"].SetValue(pointLights[i].Position);
+                lighting.Parameters[$"PointLights[{i}].Color"].SetValue(pointLights[i].Color);
+                lighting.Parameters[$"PointLights[{i}].Attenuation"].SetValue(pointLights[i].Attenuation);
+            }
+            numLights--;
+            lighting.Parameters["NumLights"].SetValue(numLights);
+        }
 
         private void floorCheck(int x, int y, int z) {
             if (doesChunkExist(x, y, z)) {
@@ -544,10 +607,10 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             //indices = int[];
 
             foreach (int x in chunk.Keys) {
-                Console.Clear();
-                Console.CursorLeft = 0;
-                Console.CursorTop = 0;
-                Console.Write(x);
+                //Console.Clear();
+                //Console.CursorLeft = 0;
+                //Console.CursorTop = 0;
+                //Console.Write(x);
                 foreach (int y in chunk[x].Keys) {
                     foreach (int z in chunk[x][y].Keys) {
 
@@ -760,13 +823,22 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             }
 
             effect.View = viewMatrix;
+
             ResourceManager.GraphicsDevice.SamplerStates[0] = new SamplerState { Filter = TextureFilter.Point, AddressU = TextureAddressMode.Wrap, AddressV = TextureAddressMode.Wrap };
-            foreach (var pass in effect.CurrentTechnique.Passes) {
+
+            foreach (var pass in lighting.CurrentTechnique.Passes) {
                 pass.Apply();
                 for (int i = 0; i < tmp.Count; i++) {
                     ResourceManager.GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length, indices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, (indices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length) / 3);
                 }
             }
+            foreach (var pass in effect.CurrentTechnique.Passes) {
+                pass.Apply();
+                for (int i = 0; i < tmp.Count; i++) {
+                    //ResourceManager.GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length, indices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, (indices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length) / 3);
+                }
+            }
+            
 
             ResourceManager.GraphicsDevice.BlendState = BlendState.AlphaBlend;
             ResourceManager.GraphicsDevice.DepthStencilState = DepthStencilState.None;
