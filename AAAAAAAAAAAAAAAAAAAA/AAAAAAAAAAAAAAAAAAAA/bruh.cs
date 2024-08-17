@@ -24,17 +24,38 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         public Vector3 Attenuation;
     };
 
+    public struct VertexCustom {
+        public Vector3 Position;
+        public Vector3 Normal;
+        public Vector2 TextureCoordinate;
+        public float Occlusion;
+
+        public VertexCustom(Vector3 position, Vector3 normal, Vector2 texCoord, float occlusion) {
+            Position = position;
+            Normal = normal;
+            TextureCoordinate = texCoord;
+            Occlusion = occlusion;
+        }
+
+        public static readonly VertexDeclaration VertexDeclaration = new VertexDeclaration(
+            new VertexElement(0, VertexElementFormat.Vector3, VertexElementUsage.Position, 0),
+            new VertexElement(sizeof(float) * 3, VertexElementFormat.Vector3, VertexElementUsage.Normal, 0),
+            new VertexElement(sizeof(float) * 6, VertexElementFormat.Vector2, VertexElementUsage.TextureCoordinate, 0),
+            new VertexElement(sizeof(float) * 8, VertexElementFormat.Single, VertexElementUsage.Color, 0)
+        );
+    }
+
     internal class World {
 
-        public Dictionary<int, Dictionary<int, Dictionary<int, List<Block>>>> chunk = new Dictionary<int, Dictionary<int, Dictionary<int, List<Block>>>>();
-        public Dictionary<int, Dictionary<int, Dictionary<int, VertexPositionTexture[]>>> vertices = new Dictionary<int, Dictionary<int, Dictionary<int, VertexPositionTexture[]>>>();
+        public Dictionary<int, Dictionary<int, Dictionary<int, Block[,,]>>> chunk = new Dictionary<int, Dictionary<int, Dictionary<int, Block[,,]>>>();
+        public Dictionary<int, Dictionary<int, Dictionary<int, bool>>> emptyChunk = new Dictionary<int, Dictionary<int, Dictionary<int, bool>>>();
+        public Dictionary<int, Dictionary<int, Dictionary<int, VertexCustom[]>>> vertices = new Dictionary<int, Dictionary<int, Dictionary<int, VertexCustom[]>>>();
         public Dictionary<int, Dictionary<int, Dictionary<int, int[]>>> indices = new Dictionary<int, Dictionary<int, Dictionary<int, int[]>>>();
 
         public Dictionary<int, Dictionary<int, Dictionary<int, int>>> primitiveCount = new Dictionary<int, Dictionary<int, Dictionary<int, int>>>();
         public int chunkSize { get; set; }
         public Matrix projectionMatrix { get; set; }
         public Texture2D texture { get; set; }
-        public BasicEffect effect { get; set; }
         public Effect lighting { get; set; }
         public Player player { get; set; }
 
@@ -45,30 +66,27 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         private Random rand = new Random();
 
         FastNoiseLite noise = new FastNoiseLite();
-        private float noiseScale = 2.3f; //0.3f
-        private float vertScale = 5f;
-        private float threshold = -0.6f;
+        private float noiseScale = 2.2f; //0.3f
+        private float vertScale = 7f;
+        private float threshold = -0.3f;
+
+        private bool occlusionEnabled = true;
+
+        private bool fogEnabled;
+        private float fogNear;
+        private float fogFar;
 
         public World() {
             numLights = 0;
             pointLights = new PointLight[4];
             noise.SetSeed(rand.Next());
-            chunk = new Dictionary<int, Dictionary<int, Dictionary<int, List<Block>>>>();
-            chunkSize = 4;
-            player = new Player(new Vector3(0, 0, 0), 60f);
+            chunk = new Dictionary<int, Dictionary<int, Dictionary<int, Block[,,]>>>();
+            chunkSize = 8;
+            player = new Player(new Vector3(0, 3, 0), 60f);
 
-            /*
-            for(int l = 0; l < pointLights.Length; l++) {
-                pointLights[l] = new PointLight {
-                    Position = new Vector3(0, 0, 0),
-                    Color = new Vector3(0, 0, 0),
-                    Attenuation = new Vector3(1, 0.1f, 0.01f)
-                };
-                lighting.Parameters[$"PointLights[{l}].Position"].SetValue(pointLights[l].Position);
-                lighting.Parameters[$"PointLights[{l}].Color"].SetValue(pointLights[l].Color);
-                lighting.Parameters[$"PointLights[{l}].Attenuation"].SetValue(pointLights[l].Attenuation);
-            }
-            */
+            fogEnabled = false;
+            fogNear = 0;
+            fogFar = 25;
         }
 
         public void light(int index, Vector3 position, Vector3 color) {
@@ -107,24 +125,24 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
         private void floorCheck(int x, int y, int z) {
             if (doesChunkExist(x, y, z)) {
-                for (int b = 0; b < chunk[x][y][z].Count; b++) {
-                    chunk[x][y][z][b].collideFloor(player);
+                for (int b = 0; b < chunk[x][y][z].Length; b++) {
+                    //chunk[x][y][z][b].collideFloor(player);
                 }
             }
         }
 
         private void wallCheck(int x, int y, int z) {
             if (doesChunkExist(x, y, z)) {
-                for (int b = 0; b < chunk[x][y][z].Count; b++) {
-                    chunk[x][y][z][b].collide(player);
+                for (int b = 0; b < chunk[x][y][z].Length; b++) {
+                    //chunk[x][y][z][b].collide(player);
                 }
             }
         }
 
         private void stepCheck(int x, int y, int z) {
             if (doesChunkExist(x, y, z)) {
-                for (int b = 0; b < chunk[x][y][z].Count; b++) {
-                    chunk[x][y][z][b].step(player);
+                for (int b = 0; b < chunk[x][y][z].Length; b++) {
+                    //chunk[x][y][z][b].step(player);
                 }
             }
         }
@@ -150,6 +168,8 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                     // Calculate the difference between the current mouse position and the center of the screen
                     int deltaX = mouseState.X - screenCenter.X;
                     int deltaY = mouseState.Y - screenCenter.Y;
+
+                    Mouse.SetPosition(screenCenter.X, screenCenter.Y);
 
                     // Update yaw and pitch based on mouse movement
                     player.r -= deltaX * player.mouseSensitivity;
@@ -213,66 +233,87 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
             player.onGround = false;
 
-            int[] temp = this.gc(player.x, player.y, player.z);
+            List<int[]> blocksColliding = new List<int[]>();
 
-            int[] chunks = {
-                temp[0] - 1, temp[1] - 1, temp[2] - 1,
-                temp[0] - 1, temp[1] - 1, temp[2],
-                temp[0] - 1, temp[1] - 1, temp[2] + 1,
-                temp[0] - 1, temp[1], temp[2] - 1,
-                temp[0] - 1, temp[1], temp[2],
-                temp[0] - 1, temp[1], temp[2] + 1,
-                temp[0] - 1, temp[1] + 1, temp[2] - 1,
-                temp[0] - 1, temp[1] + 1, temp[2],
-                temp[0] - 1, temp[1] + 1, temp[2] + 1,
-                temp[0], temp[1] - 1, temp[2] - 1,
-                temp[0], temp[1] - 1, temp[2],
-                temp[0], temp[1] - 1, temp[2] + 1,
-                temp[0], temp[1], temp[2] - 1,
-                temp[0], temp[1], temp[2],
-                temp[0], temp[1], temp[2] + 1,
-                temp[0], temp[1] + 1, temp[2] - 1,
-                temp[0], temp[1] + 1, temp[2],
-                temp[0], temp[1] + 1, temp[2] + 1,
-                temp[0] + 1, temp[1] - 1, temp[2] - 1,
-                temp[0] + 1, temp[1] - 1, temp[2],
-                temp[0] + 1, temp[1] - 1, temp[2] + 1,
-                temp[0] + 1, temp[1], temp[2] - 1,
-                temp[0] + 1, temp[1], temp[2],
-                temp[0] + 1, temp[1], temp[2] + 1,
-                temp[0] + 1, temp[1] + 1, temp[2] - 1,
-                temp[0] + 1, temp[1] + 1, temp[2],
-                temp[0] + 1, temp[1] + 1, temp[2] + 1
-            };
+            int currentIndex = 0;
+            for (int x = -1; x < 2; x += 2) {
+                for (int y = -1; y < 2; y++) {
+                    for (int z = -1; z < 2; z += 2) {
+                        blocksColliding.Add(new int[3] { (int)Math.Round(player.x + (player.halfWidth*x)), (int)Math.Round(player.y + (player.halfHeight * y)), (int)Math.Round(player.z + (player.halfWidth * z)) });
+                        currentIndex++;
+                    }
+                }
+            }
 
-            for (int c = 0; c < chunks.Length-2; c+=3){
-                floorCheck(chunks[c], chunks[c+1], chunks[c+2]);
+            for (int x = -1; x < 2; x += 2) {
+                for (int y = -1; y < 2; y++) {
+                    for (int z = -1; z < 2; z += 2) {
+                        blocksColliding.Add(new int[3] { (int)Math.Round(player.x + (player.xVel*deltaTime) + (player.halfWidth * x)), (int)Math.Round(player.y + (player.yVel * deltaTime) + (player.halfHeight * y)), (int)Math.Round(player.z + (player.zVel * deltaTime) + (player.halfWidth * z)) });
+                        currentIndex++;
+                    }
+                }
+            }
+
+            Console.WriteLine(blocksColliding[0][0].ToString() + ", " + blocksColliding[0][1].ToString() + ", " + blocksColliding[0][2].ToString());
+
+            for(int i = 0; i < blocksColliding.Count; i++) {
+                int[] cc = gc(blocksColliding[i][0], blocksColliding[i][1], blocksColliding[i][2]);
+                if (chunk.ContainsKey(cc[0])) {
+                    if (chunk[cc[0]].ContainsKey(cc[1])) {
+                        if (chunk[cc[0]][cc[1]].ContainsKey(cc[2])) {
+                            int aX = blocksColliding[i][0] - (cc[0] * chunkSize);
+                            int aY = blocksColliding[i][1] - (cc[1] * chunkSize);
+                            int aZ = blocksColliding[i][2] - (cc[2] * chunkSize);
+                            if (chunk[cc[0]][cc[1]][cc[2]][aX, aY, aZ].tex >= 0) {
+                                chunk[cc[0]][cc[1]][cc[2]][aX, aY, aZ].collideFloor(player);
+                            }
+                        }
+                    }
+                }
             }
             player.prevVelocity = player.velocity;
             player.nextVelocity = player.velocity;
             player.debugCanStepX = true;
             player.debugCanStepZ = true;
-            for (int c = 0; c < chunks.Length-2; c+=3){
-                wallCheck(chunks[c], chunks[c+1], chunks[c+2]);
+            for (int i = 0; i < blocksColliding.Count; i++) {
+                int[] cc = gc(blocksColliding[i][0], blocksColliding[i][1], blocksColliding[i][2]);
+                if (chunk.ContainsKey(cc[0])) {
+                    if (chunk[cc[0]].ContainsKey(cc[1])) {
+                        if (chunk[cc[0]][cc[1]].ContainsKey(cc[2])) {
+                            int aX = blocksColliding[i][0] - (cc[0] * chunkSize);
+                            int aY = blocksColliding[i][1] - (cc[1] * chunkSize);
+                            int aZ = blocksColliding[i][2] - (cc[2] * chunkSize);
+                            if (chunk[cc[0]][cc[1]][cc[2]][aX, aY, aZ].tex >= 0) {
+                                chunk[cc[0]][cc[1]][cc[2]][aX, aY, aZ].collide(player);
+                            }
+                        }
+                    }
+                }
             }
-            for (int c = 0; c < chunks.Length-2; c+=3){
-                stepCheck(chunks[c], chunks[c+1], chunks[c+2]);
+            for (int i = 0; i < blocksColliding.Count; i++) {
+                int[] cc = gc(blocksColliding[i][0], blocksColliding[i][1], blocksColliding[i][2]);
+                if (chunk.ContainsKey(cc[0])) {
+                    if (chunk[cc[0]].ContainsKey(cc[1])) {
+                        if (chunk[cc[0]][cc[1]].ContainsKey(cc[2])) {
+                            int aX = blocksColliding[i][0] - (cc[0] * chunkSize);
+                            int aY = blocksColliding[i][1] - (cc[1] * chunkSize);
+                            int aZ = blocksColliding[i][2] - (cc[2] * chunkSize);
+                            if (chunk[cc[0]][cc[1]][cc[2]][aX, aY, aZ].tex >= 0) {
+                                chunk[cc[0]][cc[1]][cc[2]][aX, aY, aZ].step(player);
+                            }
+                        }
+                    }
+                }
             }
 
             player.velocity = player.nextVelocity;
 
             player.position += player.velocity * deltaTime;
 
-            player.cameraPosition = player.position + new Microsoft.Xna.Framework.Vector3(0, player.halfHeight / 2f, 0);
-
             player.xVel = MathHelper.LerpPrecise(player.xVel, 0, Math.Min(player.damping * deltaTime, 1));
             player.zVel = MathHelper.LerpPrecise(player.zVel, 0, Math.Min(player.damping * deltaTime, 1));
 
             player.prevVelocity = player.velocity;
-
-            if (player.mouseLock) {
-                Mouse.SetPosition(screenCenter.X, screenCenter.Y);
-            }
 
         }
 
@@ -288,36 +329,58 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
             if (!alreadyExists) {
                 if (!chunk.ContainsKey(x)) {
-                    chunk[x] = new Dictionary<int, Dictionary<int, List<Block>>>();
+                    chunk[x] = new Dictionary<int, Dictionary<int, Block[,,]>>();
                 }
 
                 if (!chunk[x].ContainsKey(y)) {
-                    chunk[x][y] = new Dictionary<int, List<Block>>();
+                    chunk[x][y] = new Dictionary<int, Block[,,]>();
                 }
 
                 if (!chunk[x][y].ContainsKey(z)) {
-                    chunk[x][y][z] = new List<Block>();
+                    chunk[x][y][z] = new Block[chunkSize, chunkSize, chunkSize];
                 }
 
+                if (!emptyChunk.ContainsKey(x)) {
+                    emptyChunk[x] = new Dictionary<int, Dictionary<int, bool>>();
+                }
+
+                if (!emptyChunk[x].ContainsKey(y)) {
+                    emptyChunk[x][y] = new Dictionary<int, bool>();
+                }
+
+                if (!emptyChunk[x][y].ContainsKey(z)) {
+                    emptyChunk[x][y][z] = false;
+                }
+                int totalBlocks = 0;
                 for (int cX = x * chunkSize; cX < (x * chunkSize) + chunkSize; cX++) {
                     for (int cY = y * chunkSize; cY < (y * chunkSize) + chunkSize; cY++) {
                         for (int cZ = z * chunkSize; cZ < (z * chunkSize) + chunkSize; cZ++) {
+
+                            int aX = cX - (x * chunkSize);
+                            int aY = cY - (y * chunkSize);
+                            int aZ = cZ - (z * chunkSize);
 
                             float boise = (int)Math.Round(noise.GetNoise(cX * noiseScale, cZ * noiseScale) * vertScale);
                             float coise = (int)Math.Round(noise.GetNoise(cX * noiseScale, cY * noiseScale, cZ * noiseScale));
 
                             if (cY <= boise && coise > threshold) {
                                 if (cY == boise) {
-                                    this.addBlock(cX, cY, cZ, 0);
+                                    chunk[x][y][z][aX, aY, aZ] = new Block(cX, cY, cZ, 0);
                                 } else if (cY < boise && cY > boise - 5) {
-                                    this.addBlock(cX, cY, cZ, 1);
+                                    chunk[x][y][z][aX, aY, aZ] = new Block(cX, cY, cZ, 1);
                                 } else if (cY <= boise - 5) {
-                                    this.addBlock(cX, cY, cZ, rand.Next(5));
+                                    chunk[x][y][z][aX, aY, aZ] = new Block(cX, cY, cZ, 2);
                                 }
+                                totalBlocks++;
+                            } else {
+                                chunk[x][y][z][aX, aY, aZ] = new Block(cX, cY, cZ, -1);
                             }
 
                         }
                     }
+                }
+                if(totalBlocks == 0) {
+                    emptyChunk[x][y][z] = true;
                 }
                 //regenerateChunk(x, y, z);
             }
@@ -367,60 +430,62 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             int[] currentChunk = this.gc(x, y, z);
 
             if (!chunk.ContainsKey(currentChunk[0])) {
-                chunk[currentChunk[0]] = new Dictionary<int, Dictionary<int, List<Block>>>();
+                chunk[currentChunk[0]] = new Dictionary<int, Dictionary<int, Block[,,]>>();
             }
 
             if (!chunk[currentChunk[0]].ContainsKey(currentChunk[1])) {
-                chunk[currentChunk[0]][currentChunk[1]] = new Dictionary<int, List<Block>>();
+                chunk[currentChunk[0]][currentChunk[1]] = new Dictionary<int, Block[,,]>();
             }
 
             if (!chunk[currentChunk[0]][currentChunk[1]].ContainsKey(currentChunk[2])) {
-                chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]] = new List<Block>();
+                chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]] = new Block[chunkSize, chunkSize, chunkSize];
             }
 
-            chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]].Add(new Block(x, y, z, tex));
+            int xd = currentChunk[0] * chunkSize;
+            int yd = currentChunk[1] * chunkSize;
+            int zd = currentChunk[2] * chunkSize;
+
+            chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]][x - xd, y - yd, z - zd] = new Block(x, y, z, tex);
 
         }
 
         public bool checkForBlock(int x, int y, int z) {
-            int[] currentChunk = this.gc(x, y, z);
-            if (chunk.ContainsKey(currentChunk[0])) {
-                if (chunk[currentChunk[0]].ContainsKey(currentChunk[1])) {
-                    if (chunk[currentChunk[0]][currentChunk[1]].ContainsKey(currentChunk[2])) {
-                        bool exists = false;
-                        for (int i = 0; i < chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]].Count; i++) {
-                            if (chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]][i].x == x && chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]][i].y == y && chunk[currentChunk[0]][currentChunk[1]][currentChunk[2]][i].z == z) {
-                                exists = true;
-                                break;
-                            }
-                        }
-                        if (exists) {
-                            return true;
-                        }
+            int[] c = this.gc(x, y, z);
+            if (chunk.ContainsKey(c[0])) {
+                if (chunk[c[0]].ContainsKey(c[1])) {
+                    if (chunk[c[0]][c[1]].ContainsKey(c[2])) {
+
+                        int xd = c[0] * chunkSize;
+                        int yd = c[1] * chunkSize;
+                        int zd = c[2] * chunkSize;
+
+                        return chunk[c[0]][c[1]][c[2]][x - xd, y - yd, z - zd].tex != -1;
+
                     }
                 }
             }
             return false;
         }
 
-        public bool checkForBlockChunk(int cX, int cY, int cZ, int x, int y, int z) {
-            bool exists = false;
-            for (int i = 0; i < chunk[cX][cY][cZ].Count; i++) {
-                if (chunk[cX][cY][cZ][i].x == x && chunk[cX][cY][cZ][i].y == y && chunk[cX][cY][cZ][i].z == z) {
-                    exists = true;
-                    break;
+        public int checkWhatBlock(int x, int y, int z) {
+            int[] c = this.gc(x, y, z);
+            if (chunk.ContainsKey(c[0])) {
+                if (chunk[c[0]].ContainsKey(c[1])) {
+                    if (chunk[c[0]][c[1]].ContainsKey(c[2])) {
+
+                        int xd = c[0] * chunkSize;
+                        int yd = c[1] * chunkSize;
+                        int zd = c[2] * chunkSize;
+
+                        return chunk[c[0]][c[1]][c[2]][x - xd, y - yd, z - zd].tex;
+
+                    }
                 }
             }
-            if (exists) {
-                return true;
-            }
-            return false;
+            return -2;
         }
 
         public void regenerateChunk(int x, int y, int z) {
-
-            //vertices = VertexPositionTexture[];
-            //indices = int[];
 
             if (!primitiveCount.ContainsKey(x)) {
                 primitiveCount[x] = new Dictionary<int, Dictionary<int, int>>();
@@ -432,222 +497,70 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             primitiveCount[x][y][z] = 0;
 
             List<Vector3> positions = new List<Vector3>();
+            List<Vector3> normals = new List<Vector3>();
             List<Vector2> UVs = new List<Vector2>();
+            List<float> AO = new List<float>();
             List<int> listIndices = new List<int>();
             int totalIndices = 0;
 
-            for (int b = 0; b < chunk[x][y][z].Count; b++) {
+            for (int b = 0; b < chunkSize; b++) {
+                for (int c = 0; c < chunkSize; c++) {
+                    for (int d = 0; d < chunkSize; d++) {
 
-                int cX = chunk[x][y][z][b].x;
-                int cY = chunk[x][y][z][b].y;
-                int cZ = chunk[x][y][z][b].z;
-                float cLX = chunk[x][y][z][b].lx;
-                float cHX = chunk[x][y][z][b].hx;
-                float cLY = chunk[x][y][z][b].ly;
-                float cHY = chunk[x][y][z][b].hy;
+                        if (chunk[x][y][z][b, c, d].tex >= 0) {
 
-                // Back (z-)
-                if (!checkForBlock(cX, cY, cZ - 1)) {
-                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
-                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
-                    UVs.Add(new Vector2(cLX, cLY));
-                    UVs.Add(new Vector2(cLX, cHY));
-                    UVs.Add(new Vector2(cHX, cHY));
-                    UVs.Add(new Vector2(cHX, cLY));
+                            int cX = b + (x * chunkSize);
+                            int cY = c + (y * chunkSize);
+                            int cZ = d + (z * chunkSize);
+                            float cLX = chunk[x][y][z][b, c, d].lx;
+                            float cHX = chunk[x][y][z][b, c, d].hx;
+                            float cLY = chunk[x][y][z][b, c, d].ly;
+                            float cHY = chunk[x][y][z][b, c, d].hy;
+                            
+                            bool[,,] around = new bool[3, 3, 3];
 
-                    int[] addedIndices = new int[]{
-                                    0 + totalIndices, 2 + totalIndices, 1 + totalIndices, 0 + totalIndices, 3 + totalIndices, 2 + totalIndices
-                                };
-
-                    listIndices.AddRange(addedIndices);
-
-                    totalIndices += 4;
-                    primitiveCount[x][y][z] += 2;
-                }
-
-                // Front (z+)
-                if (!checkForBlock(cX, cY, cZ + 1)) {
-                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
-                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
-                    UVs.Add(new Vector2(cLX, cLY));
-                    UVs.Add(new Vector2(cLX, cHY));
-                    UVs.Add(new Vector2(cHX, cHY));
-                    UVs.Add(new Vector2(cHX, cLY));
-
-                    int[] addedIndices = new int[]{
-                                    0 + totalIndices, 1 + totalIndices, 2 + totalIndices, 0 + totalIndices, 2 + totalIndices, 3 + totalIndices
-                                };
-
-                    listIndices.AddRange(addedIndices);
-
-                    totalIndices += 4;
-                    primitiveCount[x][y][z] += 2;
-                }
-
-                // Left (x-)
-                if (!checkForBlock(cX - 1, cY, cZ)) {
-                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
-                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
-                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
-                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
-                    UVs.Add(new Vector2(cHX, cHY));
-                    UVs.Add(new Vector2(cLX, cHY));
-                    UVs.Add(new Vector2(cLX, cLY));
-                    UVs.Add(new Vector2(cHX, cLY));
-
-                    int[] addedIndices = new int[]{
-                                    2 + totalIndices, 3 + totalIndices, 0 + totalIndices, 2 + totalIndices, 0 + totalIndices, 1 + totalIndices
-                                };
-
-                    listIndices.AddRange(addedIndices);
-
-                    totalIndices += 4;
-                    primitiveCount[x][y][z] += 2;
-                }
-
-                // Right (x+)
-                if (!checkForBlock(cX + 1, cY, cZ)) {
-                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
-                    UVs.Add(new Vector2(cHX, cHY));
-                    UVs.Add(new Vector2(cLX, cHY));
-                    UVs.Add(new Vector2(cLX, cLY));
-                    UVs.Add(new Vector2(cHX, cLY));
-
-                    int[] addedIndices = new int[]{
-                                    0 + totalIndices, 1 + totalIndices, 2 + totalIndices, 0 + totalIndices, 2 + totalIndices, 3 + totalIndices
-                                };
-
-                    listIndices.AddRange(addedIndices);
-
-                    totalIndices += 4;
-                    primitiveCount[x][y][z] += 2;
-                }
-
-                // Bottom (y-)
-                if (!checkForBlock(cX, cY - 1, cZ)) {
-                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
-                    positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
-                    UVs.Add(new Vector2(cLX, cLY));
-                    UVs.Add(new Vector2(cLX, cHY));
-                    UVs.Add(new Vector2(cHX, cHY));
-                    UVs.Add(new Vector2(cHX, cLY));
-
-                    int[] addedIndices = new int[]{
-                                    1 + totalIndices, 2 + totalIndices, 3 + totalIndices, 1 + totalIndices, 3 + totalIndices, 0 + totalIndices
-                                };
-
-                    listIndices.AddRange(addedIndices);
-
-                    totalIndices += 4;
-                    primitiveCount[x][y][z] += 2;
-                }
-
-                // Top (y+)
-                if (!checkForBlock(cX, cY + 1, cZ)) {
-                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
-                    positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
-                    positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
-                    UVs.Add(new Vector2(cLX, cHY));
-                    UVs.Add(new Vector2(cLX, cLY));
-                    UVs.Add(new Vector2(cHX, cLY));
-                    UVs.Add(new Vector2(cHX, cHY));
-
-                    int[] addedIndices = new int[]{
-                        0 + totalIndices, 2 + totalIndices, 3 + totalIndices, 0 + totalIndices, 1 + totalIndices, 2 + totalIndices
-                    };
-
-                    listIndices.AddRange(addedIndices);
-
-                    totalIndices += 4;
-                    primitiveCount[x][y][z] += 2;
-                }
-
-            }
-
-            if (!vertices.ContainsKey(x)) {
-                vertices[x] = new Dictionary<int, Dictionary<int, VertexPositionTexture[]>>();
-            }
-            if (!vertices[x].ContainsKey(y)) {
-                vertices[x][y] = new Dictionary<int, VertexPositionTexture[]>();
-            }
-
-            if (!indices.ContainsKey(x)) {
-                indices[x] = new Dictionary<int, Dictionary<int, int[]>>();
-            }
-            if (!indices[x].ContainsKey(y)) {
-                indices[x][y] = new Dictionary<int, int[]>();
-            }
-
-            vertices[x][y][z] = new VertexPositionTexture[positions.Count];
-            indices[x][y][z] = new int[listIndices.Count];
-
-            for (int i = 0; i < positions.Count; i++) {
-                vertices[x][y][z][i] = new VertexPositionTexture(new Vector3(positions[i].X, positions[i].Y, positions[i].Z), new Vector2(UVs[i].X, UVs[i].Y));
-            }
-
-            for (int i = 0; i < listIndices.Count; i++) {
-                indices[x][y][z][i] = listIndices[i];
-            }
-
-        }
-
-        public void regenerate() {
-
-            //vertices = VertexPositionTexture[];
-            //indices = int[];
-
-            foreach (int x in chunk.Keys) {
-                //Console.Clear();
-                //Console.CursorLeft = 0;
-                //Console.CursorTop = 0;
-                //Console.Write(x);
-                foreach (int y in chunk[x].Keys) {
-                    foreach (int z in chunk[x][y].Keys) {
-
-                        if (!primitiveCount.ContainsKey(x)) {
-                            primitiveCount[x] = new Dictionary<int, Dictionary<int, int>>();
-                        }
-                        if (!primitiveCount[x].ContainsKey(y)) {
-                            primitiveCount[x][y] = new Dictionary<int, int>();
-                        }
-
-                        primitiveCount[x][y][z] = 0;
-
-                        List<Vector3> positions = new List<Vector3>();
-                        List<Vector2> UVs = new List<Vector2>();
-                        List<int> listIndices = new List<int>();
-                        int totalIndices = 0;
-
-                        for (int b = 0; b < chunk[x][y][z].Count; b++) {
-
-                            int cX = chunk[x][y][z][b].x;
-                            int cY = chunk[x][y][z][b].y;
-                            int cZ = chunk[x][y][z][b].z;
-                            float cLX = chunk[x][y][z][b].lx;
-                            float cHX = chunk[x][y][z][b].hx;
-                            float cLY = chunk[x][y][z][b].ly;
-                            float cHY = chunk[x][y][z][b].hy;
+                            if (occlusionEnabled) {
+                                for (int ax = 0; ax < 3; ax++) {
+                                    for (int ay = 0; ay < 3; ay++) {
+                                        for (int az = 0; az < 3; az++) {
+                                            if (!(ax == 0 && ay == 0 && az == 0)) {
+                                                around[ax, ay, az] = checkForBlock(cX + (ax - 1), cY + (ay - 1), cZ + (az - 1));
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                around[0, 1, 1] = checkForBlock(cX - 1, cY, cZ);
+                                around[1, 0, 1] = checkForBlock(cX, cY - 1, cZ);
+                                around[1, 1, 0] = checkForBlock(cX, cY, cZ - 1);
+                                around[2, 1, 1] = checkForBlock(cX + 1, cY, cZ);
+                                around[1, 2, 1] = checkForBlock(cX, cY + 1, cZ);
+                                around[1, 1, 2] = checkForBlock(cX, cY, cZ + 1);
+                            }
 
                             // Back (z-)
-                            if (!checkForBlock(cX, cY, cZ - 1)) {
+                            if (!around[1, 1, 0]) {
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
+                                normals.Add(new Vector3(0, 0, -1));
                                 UVs.Add(new Vector2(cLX, cLY));
                                 UVs.Add(new Vector2(cLX, cHY));
                                 UVs.Add(new Vector2(cHX, cHY));
                                 UVs.Add(new Vector2(cHX, cLY));
+                                if (occlusionEnabled) {
+                                    AO.Add(around[0, 0, 0] || around[1, 0, 0] || around[0, 1, 0] ? 1 : 0);
+                                    AO.Add(around[0, 2, 0] || around[1, 2, 0] || around[0, 1, 0] ? 1 : 0);
+                                    AO.Add(around[2, 2, 0] || around[1, 2, 0] || around[2, 1, 0] ? 1 : 0);
+                                    AO.Add(around[2, 0, 0] || around[1, 0, 0] || around[2, 1, 0] ? 1 : 0);
+                                } else {
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                }
+                                
 
                                 int[] addedIndices = new int[]{
                                     0 + totalIndices, 2 + totalIndices, 1 + totalIndices, 0 + totalIndices, 3 + totalIndices, 2 + totalIndices
@@ -660,15 +573,27 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Front (z+)
-                            if (!checkForBlock(cX, cY, cZ + 1)) {
+                            if (!around[1, 1, 2]) {
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
+                                normals.Add(new Vector3(0, 0, 1));
                                 UVs.Add(new Vector2(cLX, cLY));
                                 UVs.Add(new Vector2(cLX, cHY));
                                 UVs.Add(new Vector2(cHX, cHY));
                                 UVs.Add(new Vector2(cHX, cLY));
+                                if (occlusionEnabled) {
+                                    AO.Add(around[0, 0, 2] || around[1, 0, 2] || around[0, 1, 2] ? 1 : 0);
+                                    AO.Add(around[0, 2, 2] || around[1, 2, 2] || around[0, 1, 2] ? 1 : 0);
+                                    AO.Add(around[2, 2, 2] || around[1, 2, 2] || around[2, 1, 2] ? 1 : 0);
+                                    AO.Add(around[2, 0, 2] || around[1, 0, 2] || around[2, 1, 2] ? 1 : 0);
+                                } else {
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                }
 
                                 int[] addedIndices = new int[]{
                                     0 + totalIndices, 1 + totalIndices, 2 + totalIndices, 0 + totalIndices, 2 + totalIndices, 3 + totalIndices
@@ -681,15 +606,27 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Left (x-)
-                            if (!checkForBlock(cX - 1, cY, cZ)) {
+                            if (!around[0, 1, 1]) {
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
+                                normals.Add(new Vector3(-1, 0, 0));
                                 UVs.Add(new Vector2(cHX, cHY));
                                 UVs.Add(new Vector2(cLX, cHY));
                                 UVs.Add(new Vector2(cLX, cLY));
                                 UVs.Add(new Vector2(cHX, cLY));
+                                if (occlusionEnabled) {
+                                    AO.Add(around[0, 2, 2] || around[0, 1, 2] || around[0, 2, 1] ? 1 : 0);
+                                    AO.Add(around[0, 0, 2] || around[0, 1, 2] || around[0, 0, 1] ? 1 : 0);
+                                    AO.Add(around[0, 0, 0] || around[0, 1, 0] || around[0, 0, 1] ? 1 : 0);
+                                    AO.Add(around[0, 2, 0] || around[0, 1, 0] || around[0, 2, 1] ? 1 : 0);
+                                } else {
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                }
 
                                 int[] addedIndices = new int[]{
                                     2 + totalIndices, 3 + totalIndices, 0 + totalIndices, 2 + totalIndices, 0 + totalIndices, 1 + totalIndices
@@ -702,15 +639,27 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Right (x+)
-                            if (!checkForBlock(cX + 1, cY, cZ)) {
+                            if (!around[2, 1, 1]) {
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
+                                normals.Add(new Vector3(1, 0, 0));
                                 UVs.Add(new Vector2(cHX, cHY));
                                 UVs.Add(new Vector2(cLX, cHY));
                                 UVs.Add(new Vector2(cLX, cLY));
                                 UVs.Add(new Vector2(cHX, cLY));
+                                if (occlusionEnabled) {
+                                    AO.Add(around[2, 2, 0] || around[2, 1, 0] || around[2, 2, 1] ? 1 : 0);
+                                    AO.Add(around[2, 0, 0] || around[2, 1, 0] || around[2, 0, 1] ? 1 : 0);
+                                    AO.Add(around[2, 0, 2] || around[2, 1, 2] || around[2, 0, 1] ? 1 : 0);
+                                    AO.Add(around[2, 2, 2] || around[2, 1, 2] || around[2, 2, 1] ? 1 : 0);
+                                } else {
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                }
 
                                 int[] addedIndices = new int[]{
                                     0 + totalIndices, 1 + totalIndices, 2 + totalIndices, 0 + totalIndices, 2 + totalIndices, 3 + totalIndices
@@ -723,15 +672,27 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Bottom (y-)
-                            if (!checkForBlock(cX, cY - 1, cZ)) {
+                            if (!around[1, 0, 1]) {
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY - 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY - 0.5f, cZ - 0.5f));
+                                normals.Add(new Vector3(0, -1, 0));
                                 UVs.Add(new Vector2(cLX, cLY));
                                 UVs.Add(new Vector2(cLX, cHY));
                                 UVs.Add(new Vector2(cHX, cHY));
                                 UVs.Add(new Vector2(cHX, cLY));
+                                if (occlusionEnabled) {
+                                    AO.Add(around[0, 0, 0] || around[1, 0, 0] || around[0, 0, 1] ? 1 : 0);
+                                    AO.Add(around[0, 0, 2] || around[1, 0, 2] || around[0, 0, 1] ? 1 : 0);
+                                    AO.Add(around[2, 0, 2] || around[1, 0, 2] || around[2, 0, 1] ? 1 : 0);
+                                    AO.Add(around[2, 0, 0] || around[1, 0, 0] || around[2, 0, 1] ? 1 : 0);
+                                } else {
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                }
 
                                 int[] addedIndices = new int[]{
                                     1 + totalIndices, 2 + totalIndices, 3 + totalIndices, 1 + totalIndices, 3 + totalIndices, 0 + totalIndices
@@ -744,15 +705,27 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                             }
 
                             // Top (y+)
-                            if (!checkForBlock(cX, cY + 1, cZ)) {
+                            if (!around[1, 2, 1]) {
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ + 0.5f));
                                 positions.Add(new Vector3(cX - 0.5f, cY + 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ - 0.5f));
                                 positions.Add(new Vector3(cX + 0.5f, cY + 0.5f, cZ + 0.5f));
+                                normals.Add(new Vector3(0, 1, 0));
                                 UVs.Add(new Vector2(cLX, cHY));
                                 UVs.Add(new Vector2(cLX, cLY));
                                 UVs.Add(new Vector2(cHX, cLY));
                                 UVs.Add(new Vector2(cHX, cHY));
+                                if (occlusionEnabled) {
+                                    AO.Add(around[0, 2, 2] || around[1, 2, 2] || around[0, 2, 1] ? 1 : 0);
+                                    AO.Add(around[0, 2, 0] || around[1, 2, 0] || around[0, 2, 1] ? 1 : 0);
+                                    AO.Add(around[2, 2, 0] || around[1, 2, 0] || around[2, 2, 1] ? 1 : 0);
+                                    AO.Add(around[2, 2, 2] || around[1, 2, 2] || around[2, 2, 1] ? 1 : 0);
+                                } else {
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                    AO.Add(0);
+                                }
 
                                 int[] addedIndices = new int[]{
                                     0 + totalIndices, 2 + totalIndices, 3 + totalIndices, 0 + totalIndices, 1 + totalIndices, 2 + totalIndices
@@ -763,32 +736,60 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                                 totalIndices += 4;
                                 primitiveCount[x][y][z] += 2;
                             }
+                        }
+                    }
+                }
+            }
 
+            if (!vertices.ContainsKey(x)) {
+                vertices[x] = new Dictionary<int, Dictionary<int, VertexCustom[]>>();
+            }
+            if (!vertices[x].ContainsKey(y)) {
+                vertices[x][y] = new Dictionary<int, VertexCustom[]>();
+            }
+
+            if (!indices.ContainsKey(x)) {
+                indices[x] = new Dictionary<int, Dictionary<int, int[]>>();
+            }
+            if (!indices[x].ContainsKey(y)) {
+                indices[x][y] = new Dictionary<int, int[]>();
+            }
+
+            vertices[x][y][z] = new VertexCustom[positions.Count];
+            indices[x][y][z] = new int[listIndices.Count];
+
+            for (int i = 0; i < positions.Count; i++) {
+                vertices[x][y][z][i] = new VertexCustom(new Vector3(positions[i].X, positions[i].Y, positions[i].Z), new Vector3(normals[i / 4].X, normals[i / 4].Y, normals[i / 4].Z), new Vector2(UVs[i].X, UVs[i].Y), AO[i]);
+            }
+
+            for (int i = 0; i < listIndices.Count; i++) {
+                indices[x][y][z][i] = listIndices[i];
+            }
+
+
+        }
+
+        public void regenerate() {
+
+            foreach (int x in chunk.Keys) {
+                Console.Clear();
+                Console.CursorLeft = 0;
+                Console.CursorTop = 0;
+                Console.Write(x);
+                foreach (int y in chunk[x].Keys) {
+                    foreach (int z in chunk[x][y].Keys) {
+
+                        if (!primitiveCount.ContainsKey(x)) {
+                            primitiveCount[x] = new Dictionary<int, Dictionary<int, int>>();
+                        }
+                        if (!primitiveCount[x].ContainsKey(y)) {
+                            primitiveCount[x][y] = new Dictionary<int, int>();
                         }
 
-                        if (!vertices.ContainsKey(x)) {
-                            vertices[x] = new Dictionary<int, Dictionary<int, VertexPositionTexture[]>>();
-                        }
-                        if (!vertices[x].ContainsKey(y)) {
-                            vertices[x][y] = new Dictionary<int, VertexPositionTexture[]>();
-                        }
+                        primitiveCount[x][y][z] = 0;
 
-                        if (!indices.ContainsKey(x)) {
-                            indices[x] = new Dictionary<int, Dictionary<int, int[]>>();
-                        }
-                        if (!indices[x].ContainsKey(y)) {
-                            indices[x][y] = new Dictionary<int, int[]>();
-                        }
-
-                        vertices[x][y][z] = new VertexPositionTexture[positions.Count];
-                        indices[x][y][z] = new int[listIndices.Count];
-
-                        for (int i = 0; i < positions.Count; i++) {
-                            vertices[x][y][z][i] = new VertexPositionTexture(new Vector3(positions[i].X, positions[i].Y, positions[i].Z), new Vector2(UVs[i].X, UVs[i].Y));
-                        }
-
-                        for (int i = 0; i < listIndices.Count; i++) {
-                            indices[x][y][z][i] = listIndices[i];
+                        if (!emptyChunk[x][y][z]) {
+                            regenerateChunk(x, y, z);
                         }
 
                     }
@@ -822,27 +823,48 @@ namespace AAAAAAAAAAAAAAAAAAAA {
                 }
             }
 
-            effect.View = viewMatrix;
-
             ResourceManager.GraphicsDevice.SamplerStates[0] = new SamplerState { Filter = TextureFilter.Point, AddressU = TextureAddressMode.Wrap, AddressV = TextureAddressMode.Wrap };
 
             foreach (var pass in lighting.CurrentTechnique.Passes) {
                 pass.Apply();
                 for (int i = 0; i < tmp.Count; i++) {
-                    ResourceManager.GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length, indices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, (indices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length) / 3);
+                    ResourceManager.GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length, indices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, (indices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length) / 3, VertexCustom.VertexDeclaration);
                 }
             }
-            foreach (var pass in effect.CurrentTechnique.Passes) {
-                pass.Apply();
-                for (int i = 0; i < tmp.Count; i++) {
-                    //ResourceManager.GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, vertices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length, indices[tmp[i][0]][tmp[i][1]][tmp[i][2]], 0, (indices[tmp[i][0]][tmp[i][1]][tmp[i][2]].Length) / 3);
-                }
-            }
-            
 
             ResourceManager.GraphicsDevice.BlendState = BlendState.AlphaBlend;
             ResourceManager.GraphicsDevice.DepthStencilState = DepthStencilState.None;
             ResourceManager.GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+        }
+
+        public bool FogEnabled {
+            set {
+                fogEnabled = value;
+                lighting.Parameters[$"FogEnabled"].SetValue(value);
+            }
+            get { return fogEnabled; }
+        }
+
+        public float FogNear {
+            set {
+                fogNear = value;
+                lighting.Parameters[$"FogNear"].SetValue(value);
+            }
+            get { return fogNear; }
+        }
+        public float FogFar {
+            set {
+                fogFar = value;
+                lighting.Parameters[$"FogFar"].SetValue(value);
+            }
+            get { return fogFar; }
+        }
+
+        public bool AOEnabled {
+            set {
+                occlusionEnabled = value;
+            }
+            get { return occlusionEnabled; }
         }
 
     }
@@ -863,6 +885,11 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             this.y = y;
             this.z = z;
             this.tex = tex;
+
+            this.lx = 0;
+            this.ly = 0;
+            this.hx = 0;
+            this.hy = 0;
 
             switch (tex) {
                 case 0:
@@ -1085,7 +1112,6 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         public bool debugCanStepZ { get; set; }
         public float jumpHeight { get; set; }
         public float damping { get; set; }
-        public Microsoft.Xna.Framework.Vector3 cameraPosition { get; set; }
 
         public Player(Microsoft.Xna.Framework.Vector3 position, float moveSpeed) {
             this.pos = position;
@@ -1104,13 +1130,16 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             this.jumpHeight = 6f;
             this.damping = 10f;
             this.onGround = false;
-            this.cameraPosition = position + new Microsoft.Xna.Framework.Vector3(0, this.halfHeight / 2f, 0);
             this.debugCanStepX = false;
             this.debugCanStepZ = false;
         }
 
         public void bruh(float buh) {
             deltaTime = buh;
+        }
+
+        public Microsoft.Xna.Framework.Vector3 cameraPosition {
+            get { return position + new Microsoft.Xna.Framework.Vector3(0, halfHeight * 0.75f, 0); }
         }
 
         public Microsoft.Xna.Framework.Vector3 position {

@@ -30,3 +30,4 @@ C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\A
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.pdb
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.genruntimeconfig.cache
 C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\ref\AAAAAAAAAAAAAAAAAAAA.dll
+C:\Users\ralar\Documents\GitHub\testing-new-render-method\AAAAAAAAAAAAAAAAAAAA\AAAAAAAAAAAAAAAAAAAA\obj\Debug\net6.0\AAAAAAAAAAAAAAAAAAAA.csproj.ResolveComReference.cache

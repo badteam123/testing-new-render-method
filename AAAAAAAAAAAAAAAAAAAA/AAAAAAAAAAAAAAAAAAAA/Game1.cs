@@ -24,12 +24,6 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         private SpriteBatch spriteBatch;
         private SpriteFont font;
 
-        //private zpitoHandler zpitoHandler = new zpitoHandler();
-        //List<Block> blocks = new List<Block>();
-        //Dictionary<string, Texture2D> texDict = new Dictionary<string, Texture2D>();
-        //Dictionary<string, BasicEffect> effDict = new Dictionary<string, BasicEffect>();
-        //private Player player;
-
         private World world = new World();
 
         private Random rand = new Random();
@@ -39,7 +33,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         private float vertScale = 15f;
         private float threshold = 0.3f;
 
-        private int renderDistance = 4; // 16 - 18 fps on 500 render dist before greedy meshing
+        private int renderDistance = 8; // 16 - 18 fps on 500 render dist before greedy meshing
 
         public Game1() {
             graphics = new GraphicsDeviceManager(this);
@@ -51,26 +45,16 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
             noise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
             noise.SetFractalType(FastNoiseLite.FractalType.None);
-
-            //target framerate
             TargetElapsedTime = TimeSpan.FromSeconds(1.0 / 144.0);
-
-            //consistent framerate
             IsFixedTimeStep = true;
 
-            //graphics.IsFullScreen = true;
+            graphics.IsFullScreen = true;
 
-            //graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
-            //graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
 
-            graphics.PreferredBackBufferWidth = 1280;
-            graphics.PreferredBackBufferHeight = 720;
-
-            //graphics.ApplyChanges();
-
-            //player = new Player(new Vector3(0, 5, 0), 50f);
-
-            //player.mouseLock = true;
+            //graphics.PreferredBackBufferWidth = 1280;
+            //graphics.PreferredBackBufferHeight = 720;
             IsMouseVisible = true;
 
             string[] bruh = new string[3];
@@ -80,19 +64,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
             noise.SetSeed(rand.Next());
 
-            //(int)Math.Round(noise.GetNoise(x * noiseScale, z * noiseScale) * vertScale) - 10
-
-            /*
-            for (int x = -renderDistance; x < renderDistance + 1; x++) {
-                for (int z = -renderDistance; z < renderDistance + 1; z++) {
-                        int rnd = rand.Next(0, 2);
-                        world.addBlock(z, (int)Math.Round(noise.GetNoise(x * noiseScale, z * noiseScale) * vertScale) - 10, x, bruh[rnd]);
-                    //Console.Write(rnd);
-                }
-                //Console.WriteLine("");
-            }
-            */
-
+            world.AOEnabled = true;
 
             for (int x = -renderDistance; x < renderDistance + 1; x++) {
                     Console.Clear();
@@ -118,18 +90,20 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             font = Content.Load<SpriteFont>("ArialFont");
             world.lighting = Content.Load<Effect>("Lighting");
 
+            world.FogEnabled = true;
+            world.FogNear = 50;
+            world.FogFar = 150;
+
             world.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f);
 
             world.texture = Content.Load<Texture2D>("texsheet");
+
             world.texture.GraphicsDevice.SamplerStates[0] = new SamplerState { Filter = TextureFilter.Point, AddressU = TextureAddressMode.Wrap, AddressV = TextureAddressMode.Wrap };
 
-            world.effect = new BasicEffect(GraphicsDevice) {
-                TextureEnabled = true,
-                Texture = world.texture,
-                Projection = Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f)
-            };
+            world.lighting.Parameters[$"Texture"].SetValue(world.texture);
 
-            //world.lighting.Parameters[$"Texture"].SetValue(world.texture);
+            //world.lighting.Parameters[$"LightDirection"].SetValue(new Microsoft.Xna.Framework.Vector4(0, 0, 0, 0));
+            //world.lighting.Parameters[$"AmbientColor"].SetValue(new Microsoft.Xna.Framework.Vector4(1, 1, 1, 1));
 
             for (int i = 0; i < 4; i++) {
                 //world.lighting.Parameters[$"PointLights[{i}].Position"].SetValue(new Microsoft.Xna.Framework.Vector3(0, 0, 0));
@@ -138,13 +112,6 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             }
 
             //world.addLight(new Microsoft.Xna.Framework.Vector3(0, 0, 0), new Microsoft.Xna.Framework.Vector3(0, 1, 0));
-
-            /*
-            world.effect.FogEnabled = true;
-            world.effect.FogColor = Color.Black.ToVector3();
-            world.effect.FogStart = 0;
-            world.effect.FogEnd = 30;
-            */
 
             world.regenerate();
 
@@ -158,10 +125,16 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             if (Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+            if (Keyboard.GetState().IsKeyDown(Keys.LeftShift)) {
+                world.player.movementSpeed = 150f;
+            } else {
+                world.player.movementSpeed = 40f;
+            }
+
             world.updatePlayer(deltaTime);
 
-            //if (Keyboard.GetState().IsKeyDown(Keys.Space))
-            //    world.player.yVel += 0.50f;
+            if (Keyboard.GetState().IsKeyDown(Keys.Space))
+                world.player.yVel += 0.4f;
 
             if (Keyboard.GetState().IsKeyDown(Keys.E))
                 world.player.r = 0;
@@ -170,15 +143,14 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         }
 
         protected override void Draw(GameTime gameTime) {
-            GraphicsDevice.Clear(Color.Black);
+            GraphicsDevice.Clear(Color.SkyBlue);
 
             Matrix rotationMatrix = Matrix.CreateFromYawPitchRoll(world.player.r, world.player.t, 0);
             Microsoft.Xna.Framework.Vector3 lookDirection = Microsoft.Xna.Framework.Vector3.Transform(Microsoft.Xna.Framework.Vector3.Forward, rotationMatrix);
             Microsoft.Xna.Framework.Vector3 upDirection = Microsoft.Xna.Framework.Vector3.Transform(Microsoft.Xna.Framework.Vector3.Up, rotationMatrix);
             Matrix viewMatrix = Matrix.CreateLookAt(world.player.cameraPosition, world.player.cameraPosition + lookDirection, upDirection);
 
-
-            world.lighting.Parameters["WorldViewProjection"].SetValue(Matrix.CreateTranslation(0, 0, 0) * viewMatrix * world.projectionMatrix);
+            //world.lighting.Parameters["WorldViewProjection"].SetValue(Matrix.CreateTranslation(0, 0, 0) * viewMatrix * world.projectionMatrix);
 
             world.lighting.Parameters["World"].SetValue(Matrix.CreateTranslation(0, 0, 0));
             world.lighting.Parameters["playerPos"].SetValue(world.player.position);
@@ -186,8 +158,8 @@ namespace AAAAAAAAAAAAAAAAAAAA {
             //world.lighting.Parameters["AmbientColor"].SetValue(new Microsoft.Xna.Framework.Vector4(1f, 1f, 1f, 1f));
             //world.lighting.Parameters["AmbientIntensity"].SetValue(1f);
 
-            //world.lighting.Parameters["View"].SetValue(viewMatrix);
-            //world.lighting.Parameters["Projection"].SetValue(Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f));
+            world.lighting.Parameters["View"].SetValue(viewMatrix);
+            world.lighting.Parameters["Projection"].SetValue(Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f));
 
             world.render();
 

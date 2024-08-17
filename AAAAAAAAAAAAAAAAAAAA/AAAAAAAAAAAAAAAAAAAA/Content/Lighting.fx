@@ -1,78 +1,84 @@
-﻿#if OPENGL
-#define SV_POSITION POSITION
-#define VS_SHADERMODEL vs_3_0
-#define PS_SHADERMODEL ps_3_0
-#else
-#define VS_SHADERMODEL vs_4_0_level_9_1
-#define PS_SHADERMODEL ps_4_0_level_9_1
-#endif
+﻿float4x4 World;
+float4x4 View;
+float4x4 Projection;
+float4 AmbientColor;
+float4 LightDirection;
+texture Texture;
 
-extern matrix World;
-extern matrix WorldViewProjection;
-extern Texture2D Texture;
+extern bool FogEnabled;
+extern float FogNear;
+extern float FogFar;
 
-extern float4 AmbientColor;
-extern float AmbientIntensity;
 extern float3 playerPos;
 
-struct PointLight
+sampler TextureSampler = sampler_state
 {
-    float3 Position;
-    float3 Color;
-    float3 Attenuation;
+    Texture = <Texture>;
 };
-
-// HARD CODED LIGHT CAP (as it has to be an array of a set size)
-extern PointLight PointLights[4];
-int NumLights;
-
 struct VertexShaderInput
 {
     float4 Position : POSITION0;
-    float4 Color : COLOR0;
-    float3 Normal : NORMAL0;
+    float4 Normal : NORMAL;
+    float2 TexCoord : TEXCOORD0;
+    float Occlusion : COLOR0;
 };
-
 struct VertexShaderOutput
 {
-    float4 Position : SV_POSITION;
+    float4 Position : POSITION0;
+    float4 Normal : TEXCOORD2;
     float4 Color : COLOR0;
-    float3 Normal : NORMAL0;
-    float3 WorldPos : TEXCOORD0;
+    float2 TextureCordinate : TEXCOORD0;
+    float4 Pos2 : TEXCOORD1;
+    float Occlusion : COLOR1;
 };
-
-// VERTEX SHADER
-VertexShaderOutput MainVS(VertexShaderInput input)
+VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
 {
     VertexShaderOutput output;
-    output.Position = mul(input.Position, WorldViewProjection);
-    output.Color = input.Color;
-    output.Normal = mul((float3x3) World, input.Normal); // Transform normal to world space
-    output.WorldPos = mul(World, input.Position).xyz; // Calculate world position
+    float4 worldPosition = mul(input.Position, World);
+    float4 viewPosition = mul(worldPosition, View);
+    output.Position = mul(viewPosition, Projection);
+    output.Color = float4(0.9, 0.9, 0.9, 0.9);
+    output.TextureCordinate = input.TexCoord;
+    output.Occlusion = input.Occlusion;
+        
+    float4 n = input.Normal;
+    n[3] = 0; // this prevents translation.
+    output.Normal = mul(n, World); //not input.Normal, because that wouldn't be rotated.
+        
+    output.Pos2 = worldPosition;
     return output;
 }
-
-float4 MainPS(VertexShaderOutput input) : SV_TARGET
+float4 PixelShaderFunction(VertexShaderOutput input) : COLOR0
 {
-    float4 ambient = AmbientColor * AmbientIntensity;
-    float4 finalColor = input.Color * ambient;
     
-    finalColor.rgb = float3(0.1, 0.1, 0.1);
+    float4 color = tex2D(TextureSampler, input.TextureCordinate);
+    float3 fogColor = float3(0.529, 0.808, 0.922);
+    float distance = length(float4(playerPos, 0) - input.Pos2);
     
-    float3 lightDir = playerPos - input.WorldPos;
-    float distance = length(lightDir);
-    finalColor.rgb -= min((distance*0.08) - 0.9, 0);
-
-    return finalColor;
-}
-
-
-
-technique BasicColorDrawing
-{
-    pass P0
+    float d = dot(normalize(float4(0.5, 1, 0.3, 0)), normalize(input.Normal));
+    d /= 4;
+    d += 0.75;
+    
+    color *= d;
+    
+    color *= (((1-input.Occlusion) / 2) + 0.5);
+    
+    if (FogEnabled)
     {
-        VertexShader = compile VS_SHADERMODEL MainVS();
-        PixelShader = compile PS_SHADERMODEL MainPS();
+        float f = lerp(0, 1, (distance - FogNear) / (FogFar - FogNear));
+        f = clamp(f, 0, 1);
+        f = pow(f, 2);
+        color = lerp(color, float4(fogColor, 0), f);
+    }
+
+    return color;
+
+}
+technique Ambient
+{
+    pass Pass1
+    {
+        VertexShader = compile vs_3_0 VertexShaderFunction();
+        PixelShader = compile ps_3_0 PixelShaderFunction();
     }
 }
