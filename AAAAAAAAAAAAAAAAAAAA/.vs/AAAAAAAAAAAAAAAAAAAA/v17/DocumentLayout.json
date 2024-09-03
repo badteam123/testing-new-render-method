@@ -3,12 +3,12 @@
   "WorkspaceRootPath": "C:\\Users\\ralar\\Documents\\GitHub\\testing-new-render-method\\AAAAAAAAAAAAAAAAAAAA\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{3D7E372F-4BEF-4595-9012-974C5EBA508E}|AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA.csproj|c:\\users\\ralar\\documents\\github\\testing-new-render-method\\aaaaaaaaaaaaaaaaaaaa\\aaaaaaaaaaaaaaaaaaaa\\game1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3D7E372F-4BEF-4595-9012-974C5EBA508E}|AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA.csproj|solutionrelative:aaaaaaaaaaaaaaaaaaaa\\game1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{3D7E372F-4BEF-4595-9012-974C5EBA508E}|AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA.csproj|c:\\users\\ralar\\documents\\github\\testing-new-render-method\\aaaaaaaaaaaaaaaaaaaa\\aaaaaaaaaaaaaaaaaaaa\\bruh.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{3D7E372F-4BEF-4595-9012-974C5EBA508E}|AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA.csproj|solutionrelative:aaaaaaaaaaaaaaaaaaaa\\bruh.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3D7E372F-4BEF-4595-9012-974C5EBA508E}|AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA.csproj|c:\\users\\ralar\\documents\\github\\testing-new-render-method\\aaaaaaaaaaaaaaaaaaaa\\aaaaaaaaaaaaaaaaaaaa\\game1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3D7E372F-4BEF-4595-9012-974C5EBA508E}|AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA.csproj|solutionrelative:aaaaaaaaaaaaaaaaaaaa\\game1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{3D7E372F-4BEF-4595-9012-974C5EBA508E}|AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA.csproj|c:\\users\\ralar\\documents\\github\\testing-new-render-method\\aaaaaaaaaaaaaaaaaaaa\\aaaaaaaaaaaaaaaaaaaa\\content\\lighting.fx||{8B382828-6202-11D1-8870-0000F87579D2}",
@@ -22,7 +22,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -30,26 +30,25 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Game1.cs",
               "DocumentMoniker": "C:\\Users\\ralar\\Documents\\GitHub\\testing-new-render-method\\AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA\\Game1.cs",
               "RelativeDocumentMoniker": "AAAAAAAAAAAAAAAAAAAA\\Game1.cs",
               "ToolTip": "C:\\Users\\ralar\\Documents\\GitHub\\testing-new-render-method\\AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA\\Game1.cs",
               "RelativeToolTip": "AAAAAAAAAAAAAAAAAAAA\\Game1.cs",
-              "ViewState": "AQIAACwAAAAAAAAAAAAIwDwAAAAiAAAA",
+              "ViewState": "AQIAAIMAAAAAAAAAAAAuwIUAAAAqAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-07-15T07:17:01.067Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-07-15T07:17:01.067Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "bruh.cs",
               "DocumentMoniker": "C:\\Users\\ralar\\Documents\\GitHub\\testing-new-render-method\\AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA\\bruh.cs",
               "RelativeDocumentMoniker": "AAAAAAAAAAAAAAAAAAAA\\bruh.cs",
               "ToolTip": "C:\\Users\\ralar\\Documents\\GitHub\\testing-new-render-method\\AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA\\bruh.cs",
               "RelativeToolTip": "AAAAAAAAAAAAAAAAAAAA\\bruh.cs",
-              "ViewState": "AQIAABwDAAAAAAAAAAAqwDcDAAANAAAA",
+              "ViewState": "AQIAAOUAAAAAAAAAAAAuwPUAAAANAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-07-15T07:23:28.353Z",
               "EditorCaption": ""
@@ -62,10 +61,9 @@
               "RelativeDocumentMoniker": "AAAAAAAAAAAAAAAAAAAA\\Content\\Lighting.fx",
               "ToolTip": "C:\\Users\\ralar\\Documents\\GitHub\\testing-new-render-method\\AAAAAAAAAAAAAAAAAAAA\\AAAAAAAAAAAAAAAAAAAA\\Content\\Lighting.fx",
               "RelativeToolTip": "AAAAAAAAAAAAAAAAAAAA\\Content\\Lighting.fx",
-              "ViewState": "AQIAAC0AAAAAAAAAAAAAAEAAAAAEAAAA",
+              "ViewState": "AQIAACgAAAAAAAAAAAAuwDsAAAAEAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2024-07-19T07:12:04.311Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-07-19T07:12:04.311Z"
             }
           ]
         }

@@ -51,6 +51,9 @@ VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
 float4 PixelShaderFunction(VertexShaderOutput input) : COLOR0
 {
     
+    //float uvX = frac(input.TextureCordinate.x * 2);
+    //float uvY = frac(input.TextureCordinate.y * 1);
+    
     float4 color = tex2D(TextureSampler, input.TextureCordinate);
     float3 fogColor = float3(0.529, 0.808, 0.922);
     float distance = length(float4(playerPos, 0) - input.Pos2);

@@ -33,7 +33,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         private float vertScale = 15f;
         private float threshold = 0.3f;
 
-        private int renderDistance = 8; // 16 - 18 fps on 500 render dist before greedy meshing
+        private int renderDistance = 5; // 16 - 18 fps on 500 render dist before greedy meshing
 
         public Game1() {
             graphics = new GraphicsDeviceManager(this);
@@ -64,7 +64,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
             noise.SetSeed(rand.Next());
 
-            world.AOEnabled = true;
+            world.AOEnabled = false;
 
             for (int x = -renderDistance; x < renderDistance + 1; x++) {
                     Console.Clear();
@@ -92,7 +92,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
 
             world.FogEnabled = true;
             world.FogNear = 50;
-            world.FogFar = 150;
+            world.FogFar = 550;
 
             world.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f);
 
@@ -143,6 +143,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         }
 
         protected override void Draw(GameTime gameTime) {
+            //GraphicsDevice.Clear(Color.Black);
             GraphicsDevice.Clear(Color.SkyBlue);
 
             Matrix rotationMatrix = Matrix.CreateFromYawPitchRoll(world.player.r, world.player.t, 0);

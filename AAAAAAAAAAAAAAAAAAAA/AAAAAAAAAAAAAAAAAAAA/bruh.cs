@@ -68,7 +68,7 @@ namespace AAAAAAAAAAAAAAAAAAAA {
         FastNoiseLite noise = new FastNoiseLite();
         private float noiseScale = 2.2f; //0.3f
         private float vertScale = 7f;
-        private float threshold = -0.3f;
+        private float threshold = -0.3f;//-0.3f;
 
         private bool occlusionEnabled = true;
 
